@@ -224,6 +224,19 @@ links straight to your latest results.
 To turn it on: **Settings → Pages → Source: GitHub Actions**. The `pages.yml`
 workflow does the rest.
 
+> **GitHub Pages does not work on a private repo on the free plan.** You have
+> to pick one:
+>
+> - **Keep the repo private** (recommended) — no website, but everything else
+>   works. Get your results from the Actions artifacts, from the
+>   `house-search-data` branch, or just run it locally.
+> - **Make the repo public** — the website works, but so does public access to
+>   the branch holding your map and spreadsheet. Anyone could see which
+>   properties you are tracking and what you wrote in your notes.
+> - **Upgrade to GitHub Pro** — private repo and Pages together.
+>
+> The website is a convenience. The pipeline does not need it.
+
 The links on the page work out your username and repo name from the URL at
 runtime, so a fork needs no editing. They point at:
 
