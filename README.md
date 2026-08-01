@@ -7,6 +7,8 @@ results on an interactive map plus a spreadsheet you can track viewings in.
 Adapted from [find_a_job_automator](https://github.com/dcracknell/find_a_job_automator)
 — same architecture, different problem.
 
+**Live site:** https://dcracknell.github.io/house_finder/
+
 **Website:** once you enable GitHub Pages (see [below](#the-website)), this repo
 publishes a landing page at `https://<your-username>.github.io/<repo-name>/`
 with setup instructions and direct links to your latest map and spreadsheet.
