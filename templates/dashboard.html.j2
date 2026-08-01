@@ -183,12 +183,11 @@
   </aside>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 const PROPS = {{ properties_json | safe }};
 const CENTRE = {{ centre_json | safe }};
 
+function initMap() {
 const map = L.map('map', { scrollWheelZoom: true }).setView(CENTRE, 12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
@@ -363,6 +362,21 @@ const mapped = PROPS.filter(p => p.lat !== null && p.lon !== null);
 if (mapped.length > 1) {
   map.fitBounds(L.latLngBounds(mapped.map(p => [p.lat, p.lon])), { padding: [40, 40] });
 }
+}
+
+(function loadLeaflet() {
+  if (window.L) { initMap(); return; }
+    const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+          script.crossOrigin = '';
+            script.onload = initMap;
+              script.onerror = function () {
+                  document.getElementById('map').innerHTML =
+                        '<div style="padding:20px;color:var(--muted)">Map library failed to load - check your internet connection.</div>';
+                          };
+                            document.head.appendChild(script);
+                            })();
 </script>
 </body>
 </html>
