@@ -1,0 +1,8 @@
+# Normalise line endings so the repo is identical on Windows, macOS and the
+# Linux runners the workflows use.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.xlsx binary
+*.db binary

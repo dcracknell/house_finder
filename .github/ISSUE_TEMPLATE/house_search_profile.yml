@@ -1,0 +1,252 @@
+name: House search setup
+description: Set or change what the search looks for
+title: "House search setup"
+labels: ["search-setup"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fill this in to set what the search looks for. Submitting it updates
+        `config/profile.json` and starts a search.
+
+        You can submit this again any time to change your criteria.
+
+        Leave the **Rent** section blank if you are only buying (and vice versa).
+
+  - type: input
+    id: name
+    attributes:
+      label: Your name
+      description: Only used as a title on your dashboard.
+      placeholder: Dave
+    validations:
+      required: false
+
+  # ------------------------------------------------------------------ BUYING
+  - type: markdown
+    attributes:
+      value: "## Buying"
+
+  - type: textarea
+    id: buy_areas
+    attributes:
+      label: Buy - areas to search
+      description: One per line. A postcode, town, or area name.
+      placeholder: |
+        S10
+        Hathersage
+    validations:
+      required: false
+
+  - type: dropdown
+    id: buy_radius
+    attributes:
+      label: Buy - search radius
+      description: How far around each area to search.
+      options: ["0", "1", "3", "5", "10", "15", "20", "30", "40"]
+      default: 2
+    validations:
+      required: false
+
+  - type: input
+    id: buy_min_price
+    attributes:
+      label: Buy - minimum price
+      placeholder: "150000"
+    validations:
+      required: false
+
+  - type: input
+    id: buy_max_price
+    attributes:
+      label: Buy - maximum price
+      placeholder: "300000"
+    validations:
+      required: false
+
+  - type: input
+    id: buy_min_beds
+    attributes:
+      label: Buy - minimum bedrooms
+      placeholder: "3"
+    validations:
+      required: false
+
+  - type: input
+    id: buy_min_baths
+    attributes:
+      label: Buy - minimum bathrooms
+      placeholder: "1"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: buy_types
+    attributes:
+      label: Buy - property types
+      description: Leave all unticked to allow any type.
+      options:
+        - label: Detached
+        - label: Semi-detached
+        - label: Terraced
+        - label: Flat / apartment
+        - label: Bungalow
+        - label: Land / plot
+
+  - type: textarea
+    id: buy_must
+    attributes:
+      label: Buy - must-haves
+      description: One per line. These weigh heavily in the score.
+      placeholder: |
+        garden
+        off-street parking
+    validations:
+      required: false
+
+  - type: textarea
+    id: buy_nice
+    attributes:
+      label: Buy - nice-to-haves
+      description: One per line. A bonus, not a requirement.
+      placeholder: |
+        garage
+        no chain
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: buy_rule_out
+    attributes:
+      label: Buy - rule out
+      options:
+        - label: Retirement homes
+        - label: Shared ownership
+        - label: Park or mobile homes
+        - label: Auction properties
+        - label: New builds
+
+  - type: input
+    id: buy_lease
+    attributes:
+      label: Buy - minimum lease years
+      description: Reject leasehold properties with fewer years left than this.
+      placeholder: "90"
+    validations:
+      required: false
+
+  - type: textarea
+    id: buy_keywords
+    attributes:
+      label: Buy - words that rule a property out
+      description: One per line. Any listing mentioning these is discarded.
+      placeholder: |
+        cash buyers only
+        japanese knotweed
+    validations:
+      required: false
+
+  - type: textarea
+    id: buy_freetext
+    attributes:
+      label: Buy - what are you looking for
+      description: >
+        In your own words. This is read by the AI when scoring, so it is the
+        best place for the things a checkbox cannot capture.
+      placeholder: >
+        A family home on a quiet street, not on a main road, with room to
+        extend. Happy to redo a tired kitchen but not a full structural
+        project. A train station within walking distance matters a lot.
+    validations:
+      required: false
+
+  # ------------------------------------------------------------------ RENTING
+  - type: markdown
+    attributes:
+      value: "## Renting (leave blank if you are not renting)"
+
+  - type: textarea
+    id: rent_areas
+    attributes:
+      label: Rent - areas to search
+      description: One per line. Leave blank to skip renting entirely.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: rent_radius
+    attributes:
+      label: Rent - search radius
+      options: ["0", "1", "3", "5", "10", "15", "20"]
+      default: 2
+    validations:
+      required: false
+
+  - type: input
+    id: rent_min
+    attributes:
+      label: Rent - minimum rent
+      description: Per calendar month.
+      placeholder: "0"
+    validations:
+      required: false
+
+  - type: input
+    id: rent_max
+    attributes:
+      label: Rent - maximum rent
+      description: Per calendar month.
+      placeholder: "1200"
+    validations:
+      required: false
+
+  - type: input
+    id: rent_min_beds
+    attributes:
+      label: Rent - minimum bedrooms
+      placeholder: "2"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: rent_types
+    attributes:
+      label: Rent - property types
+      options:
+        - label: Detached
+        - label: Semi-detached
+        - label: Terraced
+        - label: Flat / apartment
+        - label: Bungalow
+
+  - type: textarea
+    id: rent_must
+    attributes:
+      label: Rent - must-haves
+      description: One per line.
+    validations:
+      required: false
+
+  - type: textarea
+    id: rent_nice
+    attributes:
+      label: Rent - nice-to-haves
+      description: One per line.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: rent_rule_out
+    attributes:
+      label: Rent - rule out
+      options:
+        - label: House shares and rooms
+        - label: Student-only lets
+
+  - type: textarea
+    id: rent_freetext
+    attributes:
+      label: Rent - what are you looking for
+      description: In your own words.
+    validations:
+      required: false

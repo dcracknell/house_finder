@@ -1,0 +1,23 @@
+# Secrets
+.env
+
+# Runtime data — regenerated every run, never committed to main (lives on house-search-data branch)
+data/
+!data/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

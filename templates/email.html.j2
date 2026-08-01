@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1c2430;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f6f8;padding:20px 12px;">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #dfe3e8;">
+
+  <tr><td style="background:#1f3864;padding:16px 20px;">
+    <div style="color:#ffffff;font-size:17px;font-weight:600;">
+      {{ properties|length }} new propert{{ 'y' if properties|length == 1 else 'ies' }} worth a look
+    </div>
+    <div style="color:#c7d3ea;font-size:12px;margin-top:3px;">
+      {{ generated_at }} &middot; scoring {{ '%.1f'|format(min_score) }}+
+      {%- if sale_count %} &middot; {{ sale_count }} for sale{% endif %}
+      {%- if rent_count %} &middot; {{ rent_count }} to rent{% endif %}
+    </div>
+  </td></tr>
+
+  {% for p in properties %}
+  <tr><td style="padding:14px 20px;border-bottom:1px solid #eef0f3;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      {% if p.image %}
+      <td width="96" valign="top" style="padding-right:12px;">
+        <img src="{{ p.image }}" width="96" alt="" style="width:96px;height:72px;object-fit:cover;border-radius:6px;display:block;">
+      </td>
+      {% endif %}
+      <td valign="top">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+          <td style="font-size:16px;font-weight:650;">{{ p.price }}
+            {%- if p.qualifier %} <span style="font-weight:400;font-size:12px;color:#6b7684;">{{ p.qualifier }}</span>{% endif %}
+          </td>
+          <td align="right">
+            {% if p.score is not none %}
+            <span style="display:inline-block;padding:2px 9px;border-radius:11px;font-size:12px;font-weight:700;color:#ffffff;background:
+              {%- if p.score >= 8 %}#16a34a{% elif p.score >= 6.5 %}#65a30d{% elif p.score >= 5 %}#ca8a04{% else %}#94a3b8{% endif %};">
+              {{ '%.1f'|format(p.score) }}
+            </span>
+            {% endif %}
+          </td>
+        </tr></table>
+
+        <div style="font-size:13px;color:#3c4756;margin-top:2px;">{{ p.address }}</div>
+        <div style="font-size:12px;color:#6b7684;margin-top:2px;">
+          {% if p.beds %}{{ p.beds }} bed &middot; {% endif %}
+          {% if p.baths %}{{ p.baths }} bath &middot; {% endif %}
+          {{ p.type }}{% if p.agent %} &middot; {{ p.agent }}{% endif %}
+        </div>
+
+        {% if p.why %}
+        <div style="font-size:13px;margin-top:5px;">{{ p.why }}</div>
+        {% endif %}
+
+        {% if p.vs_local is not none %}
+        <div style="font-size:12px;margin-top:4px;color:{% if p.vs_local > 10 %}#b91c1c{% elif p.vs_local < -5 %}#15803d{% else %}#6b7684{% endif %};">
+          {{ '%+.0f'|format(p.vs_local) }}% versus local sold prices
+        </div>
+        {% endif %}
+
+        <div style="margin-top:8px;">
+          <a href="{{ p.url }}" style="color:#1f3864;font-size:13px;font-weight:600;text-decoration:none;">View listing &rarr;</a>
+        </div>
+      </td>
+    </tr></table>
+  </td></tr>
+  {% endfor %}
+
+  <tr><td style="padding:14px 20px;font-size:11px;color:#8a94a2;">
+    Sent by your house-finder pipeline. Scores are a machine estimate against the
+    criteria in config/profile.json &mdash; always view in person and get a survey.
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>

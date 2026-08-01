@@ -1,0 +1,73 @@
+# === Email / digest ===
+# Without SMTP secrets the pipeline still runs and saves houses.xlsx.
+email:
+  smtp_host: "${SMTP_HOST}"
+  smtp_port: 587
+  smtp_user: "${SMTP_USER}"
+  smtp_pass: "${SMTP_PASS}"
+  smtp_from: "${SMTP_FROM}"
+  smtp_to: "${SMTP_TO}"
+  use_tls: true
+  # Only email about properties scoring at least this well.
+  min_fit_score: 7.0
+
+# === Output paths (relative to project root) ===
+paths:
+  db: data/houses.db
+  xlsx: data/houses.xlsx
+  quota_log: data/quota.jsonl
+  runs_log: data/runs.log
+  backups: data/backups
+  cache: data/cache
+  dashboard_html: data/dashboard.html
+
+# === Logging ===
+log_level: INFO
+
+# === Pipeline behaviour ===
+dry_run: false # override at runtime with --dry-run
+
+# active: full pipeline, email digest sent, dashboard regenerated
+# passive: everything runs and saves, but no email is sent
+# paused:  skip every run entirely (useful once you've found a place)
+mode: passive
+
+# === Cost control ===
+# Enforced by util/quota.py: warning past this daily spend, and LLM calls stop
+# entirely past 2x. House scoring is cheap - this cap is deliberately low.
+# Set 0 to disable the cap.
+quota_soft_cap_gbp: 1.50
+
+# === Stale-listing housekeeping ===
+# Mark a property 'withdrawn' if it hasn't been seen in a search for this long.
+stale_listing_days: 21
+
+# === Backups ===
+backups:
+  keep_days: 7
+
+# === Model selection and per-token cost rates ===
+# Rates are here so code never hard-codes them. Update if pricing changes -
+# the quota tracker reads these numbers.
+models:
+  rank:
+    # Haiku 4.5 is the default on purpose. Scoring a house against explicit
+    # criteria (price, beds, must-haves) plus a short wishlist is a much easier
+    # judgement than CV/job matching, and Haiku is ~2.5x cheaper than Sonnet.
+    # If scores feel wrong, switch to claude-sonnet-5 (1.60 / 8.00 / 0.16).
+    model: claude-haiku-4-5
+    input_gbp_per_million: 0.64
+    output_gbp_per_million: 3.20
+    cached_input_gbp_per_million: 0.064
+    max_description_tokens: 900
+    batch_size: 8
+    max_tokens_response: 1600
+    # Rank via the Message Batches API (50% token discount) when a run needs
+    # 2+ ranking calls. Anything left unscored falls back to sync calls.
+    use_batch_api: true
+    batch_poll_timeout_minutes: 15
+  # The Batches API bills at 50% of the sync rates above. Keep in sync.
+  rank_batch:
+    input_gbp_per_million: 0.32
+    output_gbp_per_million: 1.60
+    cached_input_gbp_per_million: 0.032

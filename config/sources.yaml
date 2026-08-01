@@ -1,0 +1,78 @@
+# === Listings sources ===
+# These produce the properties themselves. Everything under `enrichment:`
+# below only ADDS DATA to properties these sources found.
+portals:
+  rightmove:
+    enabled: true
+    # Politeness: seconds between requests. Keep >= 1.0. Volume is already
+    # tiny (2 runs/day x a few areas), and this keeps it obviously non-abusive.
+    request_delay_seconds: 1.5
+    # Hard cap on listings pulled per area per run (24 per page).
+    max_results_per_area: 120
+    # Rightmove sortType: 6 = newest listed first. Keep 6 so each run sees new
+    # stock first and the per-area cap never starves fresh listings.
+    sort_type: 6
+
+  auctions:
+    # Auction lots (repossessions, probate, renovation projects) that mostly
+    # never reach Rightmove. Structure was NOT verified at build time, so this
+    # ships disabled - run `house-finder health` after enabling to check it.
+    enabled: false
+    request_delay_seconds: 2.0
+    max_results_per_area: 60
+
+  zoopla:
+    enabled: false # not implemented - public listings API retired, see adapters/zoopla.py
+  onthemarket:
+    enabled: false # not implemented - actively blocks automated access, see adapters/onthemarket.py
+
+# === Individual estate agent pages (schema.org RealEstateListing JSON-LD) ===
+# Independent local agents sometimes post "coming soon" / off-market listings on
+# their own site before syndicating to the portals. Reading an agent's own site
+# is well within normal use. Add any agent whose site publishes structured data.
+custom_pages: []
+# custom_pages:
+#   - {agent_name: "Some Local Agent", url: "https://example-agent.co.uk/properties"}
+
+# === Enrichment: extra data about each property ===
+# Ordered cheapest-first. Everything above `propertydata` is free.
+enrichment:
+  land_registry:
+    enabled: true # FREE, no key. HM Land Registry Price Paid (sold comparables).
+    lookback_years: 3
+    min_comparables: 3
+
+  crime:
+    enabled: true # FREE, no key, no registration. data.police.uk street-level crime.
+    # The API's search radius is fixed at about 1 mile around the property and
+    # cannot be configured. months_back only sets the period the figure covers.
+    months_back: 12
+
+  flood:
+    enabled: true # FREE, no key. Environment Agency flood warnings/alerts.
+
+  epc:
+    # FREE but needs a self-service key: https://epc.opendatacommunities.org/
+    # Set EPC_API_EMAIL + EPC_API_KEY in .env. 'auto' = on iff both are set.
+    enabled: auto
+
+  broadband:
+    # FREE tier, needs registration: https://api.ofcom.org.uk/
+    # Set OFCOM_API_KEY in .env. 'auto' = on iff it is set.
+    enabled: auto
+
+  propertydata:
+    # PAID (from ~GBP28/month). Analytics only - it does NOT return listings.
+    # 'auto' = on iff PROPERTYDATA_API_KEY is set. Left off, everything above
+    # still works; this only adds extra signals.
+    enabled: auto
+    # Only the highest-value endpoint is on by default. Each extra endpoint
+    # costs credits per property, so turn them on deliberately.
+    endpoints:
+      prices: true # local sold-price comparables
+      flood_risk: false # the free EA source above already covers flooding
+      council_tax: false
+      demographics: false
+      schools: false
+    # Hard stop once this many credits are spent in a calendar month.
+    monthly_credit_cap: 400

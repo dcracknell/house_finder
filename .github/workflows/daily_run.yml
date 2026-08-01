@@ -1,0 +1,166 @@
+name: Daily House Search
+
+"on":
+  schedule:
+    # Twice a day is plenty - portals do not refresh faster than this, and each
+    # run costs API spend and Actions minutes.
+    - cron: "0 7 * * *"
+    - cron: "0 16 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Fetch and score, but save nothing"
+        required: false
+        type: boolean
+        default: false
+      mode:
+        description: "Only run one mode"
+        required: false
+        type: choice
+        options: ["", "buy", "rent"]
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: house-search-pipeline
+  cancel-in-progress: false
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DRY_RUN_INPUT: ${{ github.event.inputs.dry_run || 'false' }}
+      MODE_INPUT: ${{ github.event.inputs.mode || '' }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      EPC_API_EMAIL: ${{ secrets.EPC_API_EMAIL }}
+      EPC_API_KEY: ${{ secrets.EPC_API_KEY }}
+      OFCOM_API_KEY: ${{ secrets.OFCOM_API_KEY }}
+      PROPERTYDATA_API_KEY: ${{ secrets.PROPERTYDATA_API_KEY }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      SMTP_FROM: ${{ secrets.SMTP_FROM }}
+      SMTP_TO: ${{ secrets.SMTP_TO }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Restore saved data
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          if git ls-remote --exit-code --heads origin house-search-data >/dev/null 2>&1; then
+            git fetch --depth=1 origin house-search-data
+            git checkout FETCH_HEAD -- data || true
+            echo "Restored data/ from the house-search-data branch."
+          else
+            echo "No house-search-data branch yet; starting fresh."
+          fi
+
+      - name: Run pipeline
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data
+
+          cmd=(house-finder run)
+          if [[ "$DRY_RUN_INPUT" == "true" ]]; then
+            cmd+=(--dry-run)
+          fi
+          if [[ -n "$MODE_INPUT" ]]; then
+            cmd+=(--mode "$MODE_INPUT")
+          fi
+
+          "${cmd[@]}" 2>&1 | tee data/runs.log
+
+      - name: Save data
+        if: success() && env.DRY_RUN_INPUT != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          worktree="$RUNNER_TEMP/house-search-data"
+          rm -rf "$worktree"
+
+          if git ls-remote --exit-code --heads origin house-search-data >/dev/null 2>&1; then
+            git fetch --depth=1 origin house-search-data
+            git worktree add "$worktree" FETCH_HEAD
+            git -C "$worktree" switch -c house-search-data
+          else
+            git worktree add --detach "$worktree"
+            git -C "$worktree" switch --orphan house-search-data
+            find "$worktree" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          fi
+
+          rm -rf "$worktree/data"
+          cp -a data "$worktree/data"
+          # Backups are large binaries that would bloat the branch forever.
+          rm -rf "$worktree/data/backups" "$worktree/data/cache"
+
+          cat > "$worktree/README.md" <<'EOF'
+          # House search data
+
+          Maintained automatically by GitHub Actions. Holds houses.db,
+          houses.xlsx, dashboard.html and the run logs so scheduled runs keep
+          their state without a server.
+
+          Keep this repository private if you would rather not publish which
+          properties you are looking at.
+          EOF
+
+          git -C "$worktree" add README.md data
+          if git -C "$worktree" diff --cached --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          git -C "$worktree" commit -m "House search data from run $GITHUB_RUN_NUMBER"
+          git -C "$worktree" push origin HEAD:house-search-data
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: house-search-${{ github.run_number }}
+          path: |
+            data/houses.xlsx
+            data/dashboard.html
+            data/houses.db
+            data/runs.log
+            data/quota.jsonl
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## House search run"
+            echo
+            echo "Download \`houses.xlsx\` and \`dashboard.html\` from the artifacts above."
+            echo
+            if [[ -f data/runs.log ]]; then
+              echo '```text'
+              tail -n 30 data/runs.log
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

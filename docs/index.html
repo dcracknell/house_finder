@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>House Finder</title>
+<meta name="description" content="Finds UK properties matching criteria you set, scores them against what you actually want, and puts the results on an interactive map.">
+<style>
+  :root {
+    --bg:#f5f6f8; --panel:#fff; --ink:#1c2430; --muted:#6b7684;
+    --line:#dfe3e8; --accent:#1f3864; --accent-ink:#fff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12161c; --panel:#1a1f27; --ink:#e6e9ee; --muted:#939daa;
+            --line:#2a313b; --accent:#7aa2e3; --accent-ink:#0d1117; }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  .wrap { max-width:860px; margin:0 auto; padding:0 20px; }
+  header { padding:56px 0 40px; text-align:center; }
+  h1 { font-size:clamp(30px,6vw,44px); margin:0 0 10px; letter-spacing:-.02em; }
+  .tagline { font-size:clamp(16px,2.4vw,19px); color:var(--muted); margin:0 auto; max-width:620px; }
+  .cta { margin-top:26px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .btn {
+    display:inline-block; padding:11px 20px; border-radius:8px; text-decoration:none;
+    font-weight:600; font-size:15px; border:1px solid var(--line); color:var(--ink);
+    background:var(--panel);
+  }
+  .btn.primary { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .btn:hover { border-color:var(--accent); }
+  section { padding:30px 0; }
+  h2 { font-size:22px; margin:0 0 8px; }
+  .lead { color:var(--muted); margin:0 0 20px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; }
+  .card {
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px 18px;
+  }
+  .card h3 { margin:0 0 6px; font-size:16px; }
+  .card p { margin:0; color:var(--muted); font-size:14.5px; }
+  ol.steps { padding-left:20px; }
+  ol.steps li { margin-bottom:10px; }
+  pre {
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:14px 16px; overflow-x:auto; font-size:13.5px; line-height:1.5;
+  }
+  code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
+  p code, li code {
+    background:var(--panel); border:1px solid var(--line); border-radius:4px;
+    padding:1px 5px; font-size:.9em;
+  }
+  table { width:100%; border-collapse:collapse; font-size:14.5px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; font-size:13px; }
+  .note {
+    border-left:3px solid var(--accent); background:var(--panel);
+    padding:14px 16px; border-radius:0 8px 8px 0; font-size:14.5px;
+  }
+  .note strong { display:block; margin-bottom:4px; }
+  footer {
+    margin-top:40px; padding:24px 0 50px; border-top:1px solid var(--line);
+    color:var(--muted); font-size:13.5px; text-align:center;
+  }
+  a { color:var(--accent); }
+  .results a { display:block; margin-bottom:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>House Finder</h1>
+  <p class="tagline">
+    Finds UK properties matching criteria you set, scores each one against what
+    you actually want, adds public-record data the listing never shows you, and
+    puts it all on an interactive map.
+  </p>
+  <div class="cta">
+    <a class="btn primary" id="repo-link" href="#">View on GitHub</a>
+    <a class="btn" id="map-link" href="#">Open the live map</a>
+    <a class="btn" id="xlsx-link" href="#">Download the spreadsheet</a>
+  </div>
+</header>
+
+<section>
+  <h2>What it does</h2>
+  <p class="lead">Set your criteria once. It runs twice a day and keeps a running shortlist.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>Searches buy and rent</h3>
+      <p>Your price, bedrooms, property types and areas become real search
+         filters, not an afterthought.</p>
+    </div>
+    <div class="card">
+      <h3>Scores every property 0&ndash;10</h3>
+      <p>Against your must-haves and a plain-English description of what you
+         want, with a one-line reason for each score.</p>
+    </div>
+    <div class="card">
+      <h3>Tells you what the listing won't</h3>
+      <p>What similar homes nearby actually sold for, reported crime, flood
+         warnings, full EPC figures and broadband speed.</p>
+    </div>
+    <div class="card">
+      <h3>Rules things out properly</h3>
+      <p>Retirement homes, shared ownership, short leases, auction lots, or any
+         phrase you ban &mdash; discarded before they reach you.</p>
+    </div>
+    <div class="card">
+      <h3>Remembers your decisions</h3>
+      <p>Track viewings and offers in the spreadsheet. Your status and notes are
+         never overwritten, and rejected properties stay gone.</p>
+    </div>
+    <div class="card">
+      <h3>Costs pennies</h3>
+      <p>Cheap model by default, nothing scored twice, batched at a discount,
+         and a hard daily spending cap.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Your results</h2>
+  <p class="lead">
+    Updated automatically twice a day, at 07:00 and 16:00 UTC.
+  </p>
+  <div class="card results">
+    <a id="map-link-2" href="#"><strong>dashboard.html</strong> &mdash; the interactive map</a>
+    <a id="xlsx-link-2" href="#"><strong>houses.xlsx</strong> &mdash; the tracking spreadsheet</a>
+    <a id="actions-link" href="#"><strong>Actions</strong> &mdash; check whether the last run worked</a>
+  </div>
+  <p class="lead" style="margin-top:12px; font-size:14px;">
+    These links only work once the pipeline has run at least once and saved its
+    results. If they 404, check the Actions tab.
+  </p>
+</section>
+
+<section>
+  <h2>Set it up</h2>
+  <ol class="steps">
+    <li><strong>Fork this repository.</strong> Keep it <em>private</em> &mdash; it
+      records which properties you are looking at.</li>
+    <li><strong>Add an API key.</strong> Settings &rarr; Secrets and variables
+      &rarr; Actions &rarr; New repository secret. Add
+      <code>ANTHROPIC_API_KEY</code> from
+      <a href="https://console.anthropic.com/">console.anthropic.com</a>.
+      Everything else is optional.</li>
+    <li><strong>Say what you want.</strong> Open a new issue, choose
+      <em>House search setup</em>, and fill in the form. Submitting it saves your
+      criteria and starts the first search.</li>
+    <li><strong>Collect your results</strong> from the links above, or from the
+      artifacts on any run in the Actions tab.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Or run it on your own machine</h2>
+  <pre><code>git clone &lt;your fork&gt;
+cd house_finder
+python -m venv .venv &amp;&amp; .venv\Scripts\activate
+pip install -e .
+
+house-finder ui          # set your criteria in a browser
+house-finder run         # search, score, save
+house-finder map-view --open</code></pre>
+</section>
+
+<section>
+  <h2>What it costs</h2>
+  <table>
+    <tr><th>Thing</th><th>Cost</th></tr>
+    <tr><td>Running on GitHub Actions</td><td>Free</td></tr>
+    <tr><td>Scoring (Claude Haiku 4.5)</td><td>A few pence per day</td></tr>
+    <tr><td>Sold prices, crime, flood data</td><td>Free &mdash; no key needed</td></tr>
+    <tr><td>EPC and broadband data</td><td>Free &mdash; needs a free key</td></tr>
+    <tr><td>Running with no API key at all</td><td>Free, but scores are keyword-only</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Before you rely on it</h2>
+  <div class="note">
+    <strong>This is not property advice.</strong>
+    Scores are a machine's opinion measured against criteria you wrote.
+    Sold-price comparisons are rough. A flood-warning count of zero does
+    <em>not</em> mean a property is outside a flood zone. Always view in person,
+    get a survey, and use a solicitor.
+  </div>
+  <div class="note" style="margin-top:12px;">
+    <strong>It reads Rightmove's public search pages directly.</strong>
+    Rightmove publishes no API, so this is scraping, and it is against their
+    terms of service. At the volume here &mdash; twice a day, a few areas, with a
+    polite delay &mdash; the realistic worst case is your IP being blocked. It
+    will also break whenever Rightmove changes their page layout;
+    <code>house-finder health</code> tells you when that has happened. You can
+    turn it off in <code>config/sources.yaml</code>.
+  </div>
+</section>
+
+<footer>
+  Adapted from
+  <a href="https://github.com/dcracknell/find_a_job_automator">find_a_job_automator</a>
+  &mdash; same architecture, different problem.<br>
+  Map tiles &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>
+  contributors. Sold prices contain HM Land Registry data &copy; Crown copyright.
+</footer>
+
+</div>
+
+<script>
+// Work out which repository this page belongs to from the Pages URL, so every
+// link below is correct in any fork without editing this file.
+(function () {
+  var host = location.hostname;                    // user.github.io
+  var user = host.split('.')[0];
+  var parts = location.pathname.split('/').filter(Boolean);
+  var repo = parts.length ? parts[0] : 'house_finder';
+
+  var base = 'https://github.com/' + user + '/' + repo;
+  var raw = base + '/raw/house-search-data/data/';
+  var blob = base + '/blob/house-search-data/data/dashboard.html';
+  var map = 'https://htmlpreview.github.io/?' + blob;
+
+  function set(id, href) {
+    var el = document.getElementById(id);
+    if (el) el.href = href;
+  }
+  set('repo-link', base);
+  set('map-link', map);
+  set('map-link-2', map);
+  set('xlsx-link', raw + 'houses.xlsx');
+  set('xlsx-link-2', raw + 'houses.xlsx');
+  set('actions-link', base + '/actions');
+})();
+</script>
+</body>
+</html>

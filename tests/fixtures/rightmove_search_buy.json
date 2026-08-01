@@ -1,0 +1,550 @@
+{
+  "props": {
+    "pageProps": {
+      "searchResults": {
+        "resultCount": "1,729",
+        "pagination": {
+          "total": 42
+        },
+        "searchParameters": {
+          "locationIdentifier": "REGION^1195",
+          "minBedrooms": "3",
+          "maxPrice": "400000",
+          "minPrice": "200000",
+          "numberOfPropertiesPerPage": "24",
+          "radius": "3.0",
+          "sortType": "6",
+          "index": "0",
+          "propertyTypes": [],
+          "tenureTypes": [],
+          "viewType": "LIST",
+          "mustHave": [],
+          "dontShow": [],
+          "furnishTypes": [],
+          "channel": "BUY",
+          "areaSizeUnit": "sqft",
+          "currencyCode": "GBP",
+          "keywords": [],
+          "tags": []
+        },
+        "properties": [
+          {
+            "id": 170668778,
+            "bedrooms": 3,
+            "bathrooms": 1,
+            "numberOfImages": 32,
+            "summary": "Guide Price £350,000-£375,000\nLocated in the desirable village of Todwick is this significantly extended and beautifully appointed three-bedroom detached house.",
+            "displayAddress": "Church View, Todwick, S26",
+            "location": {
+              "latitude": 53.352699,
+              "longitude": -1.254704
+            },
+            "propertySubType": "Detached",
+            "tenure": {
+              "tenureType": "FREEHOLD"
+            },
+            "letAvailableDate": null,
+            "listingUpdate": {
+              "listingUpdateReason": "price_reduced",
+              "listingUpdateDate": "2026-07-31T17:16:36Z"
+            },
+            "price": {
+              "amount": 350000,
+              "frequency": "not specified",
+              "currencyCode": "GBP",
+              "displayPrices": [
+                {
+                  "displayPrice": "£350,000",
+                  "displayPriceQualifier": "Guide Price"
+                }
+              ]
+            },
+            "customer": {
+              "branchDisplayName": "Redbrik, Crystal Peaks",
+              "brandTradingName": "Redbrik"
+            },
+            "transactionType": "buy",
+            "auction": false,
+            "displaySize": "1,104 sq. ft.",
+            "propertyUrl": "/properties/170668778#/?channel=RES_BUY",
+            "channel": "BUY",
+            "firstVisibleDate": "2025-12-29T10:11:08Z",
+            "keyFeatures": [
+              {
+                "order": 1,
+                "description": "No Chain",
+                "htmlDescription": "No Chain"
+              },
+              {
+                "order": 2,
+                "description": "A Beautifully Extended Three-Bedroom Detached House",
+                "htmlDescription": "A Beautifully Extended Three-Bedroom Detached House"
+              },
+              {
+                "order": 3,
+                "description": "An Open-Plan Kitchen & Dining Area",
+                "htmlDescription": "An Open-Plan Kitchen & Dining Area"
+              },
+              {
+                "order": 4,
+                "description": "A Substantial Bay-Windowed Living Room",
+                "htmlDescription": "A Substantial Bay-Windowed Living Room"
+              },
+              {
+                "order": 5,
+                "description": "Utility Room & A Ground Floor W/C",
+                "htmlDescription": "Utility Room & A Ground Floor W/C"
+              },
+              {
+                "order": 6,
+                "description": "Three Well-Proportioned Bedrooms, With Two Doubles & A Single",
+                "htmlDescription": "Three Well-Proportioned Bedrooms, With Two Doubles & A Single"
+              },
+              {
+                "order": 7,
+                "description": "The Modern Kitchen Hosts A Range Of Integrated Appliances & A Range Cooker",
+                "htmlDescription": "The Modern Kitchen Hosts A Range Of Integrated Appliances & A Range Cooker"
+              },
+              {
+                "order": 8,
+                "description": "To The Rear Is A Superbly Landscaped, Private & Enclosed Garden",
+                "htmlDescription": "To The Rear Is A Superbly Landscaped, Private & Enclosed Garden"
+              },
+              {
+                "order": 9,
+                "description": "Driveway Parking Is Located To The Front With An External Garage",
+                "htmlDescription": "Driveway Parking Is Located To The Front With An External Garage"
+              },
+              {
+                "order": 10,
+                "description": "Energy Rating - D, Tenure; Freehold",
+                "htmlDescription": "Energy Rating - D, Tenure; Freehold"
+              }
+            ],
+            "propertyImages": {
+              "images": [
+                {
+                  "srcUrl": "https://media.rightmove.co.uk:443/dir/crop/10:9-16:9/property-photo/39f6c2323/170668778/39f6c23237fef4a2ad53e19adfcfa242_max_476x317.jpeg"
+                },
+                {
+                  "srcUrl": "https://media.rightmove.co.uk:443/dir/crop/10:9-16:9/property-photo/d8de71789/170668778/d8de71789ab135ecb2e441f7b4e78282_max_476x317.jpeg"
+                }
+              ]
+            },
+            "propertyTypeFullDescription": "3 bedroom detached house for sale",
+            "displayStatus": ""
+          },
+          {
+            "id": 91534560,
+            "bedrooms": 5,
+            "bathrooms": 1,
+            "numberOfImages": 19,
+            "summary": "GREAT SIZED FAMILY HOME - FOUR BEDROOM SEMI DETACHED HOUSE WITH DRESSING ROOM, SUN ROOM AND DRIVEWAY PARKING! Situated the North side of Chesterfield, Old Whittington, has wonderful local amenities, good schools & this home is just a short walk away from Chesterfield canal yet located we...",
+            "displayAddress": "Newbridge Lane, Old Whittington, Chesterfield, S41 9JQ",
+            "location": {
+              "latitude": 53.266029,
+              "longitude": -1.42545
+            },
+            "propertySubType": "Semi-Detached",
+            "tenure": {
+              "tenureType": "FREEHOLD"
+            },
+            "letAvailableDate": null,
+            "listingUpdate": {
+              "listingUpdateReason": "new",
+              "listingUpdateDate": "2026-08-01T15:26:05Z"
+            },
+            "price": {
+              "amount": 250000,
+              "frequency": "not specified",
+              "currencyCode": "GBP",
+              "displayPrices": [
+                {
+                  "displayPrice": "£250,000",
+                  "displayPriceQualifier": "Offers in Region of"
+                }
+              ]
+            },
+            "customer": {
+              "branchDisplayName": "Hunters, Chesterfield",
+              "brandTradingName": "Hunters"
+            },
+            "transactionType": "buy",
+            "auction": false,
+            "displaySize": "1,338 sq. ft.",
+            "propertyUrl": "/properties/91534560#/?channel=RES_BUY",
+            "channel": "BUY",
+            "firstVisibleDate": "2026-08-01T15:19:10Z",
+            "keyFeatures": [
+              {
+                "order": 1,
+                "description": "SEMI DETACHED HOUSE",
+                "htmlDescription": "SEMI DETACHED HOUSE"
+              },
+              {
+                "order": 2,
+                "description": "FOUR BEDROOMS",
+                "htmlDescription": "FOUR BEDROOMS"
+              },
+              {
+                "order": 3,
+                "description": "DRESSING ROOM & SUN ROOM",
+                "htmlDescription": "DRESSING ROOM & SUN ROOM"
+              },
+              {
+                "order": 4,
+                "description": "DRIVEWAY PARKING & GARAGE",
+                "htmlDescription": "DRIVEWAY PARKING & GARAGE"
+              },
+              {
+                "order": 5,
+                "description": "UNDER-HOUSE STORAGE SPACE",
+                "htmlDescription": "UNDER-HOUSE STORAGE SPACE"
+              },
+              {
+                "order": 6,
+                "description": "VIEW NOW!",
+                "htmlDescription": "VIEW NOW!"
+              }
+            ],
+            "propertyImages": {
+              "images": [
+                {
+                  "srcUrl": "https://media.rightmove.co.uk:443/dir/crop/10:9-16:9/property-photo/004266a12/91534560/004266a123a0a2fca031430d09d67e9d_max_476x317.jpeg"
+                },
+                {
+                  "srcUrl": "https://media.rightmove.co.uk:443/dir/crop/10:9-16:9/property-photo/05545b075/91534560/05545b07588cdf370f99baf062c851a6_max_476x317.jpeg"
+                }
+              ]
+            },
+            "propertyTypeFullDescription": "5 bedroom semi-detached house for sale",
+            "displayStatus": ""
+          },
+          {
+            "id": 91528653,
+            "bedrooms": 3,
+            "bathrooms": 1,
+            "numberOfImages": 19,
+            "summary": "A well Presented three bedroom extended semi detached home situated on a generous plot in a highly regarded area with no chain!",
+            "displayAddress": "Fitzwilliam Avenue, Wath-Upon-Dearne",
+            "location": {
+              "latitude": 53.495839,
+              "longitude": -1.345922
+            },
+            "propertySubType": "Semi-Detached",
+            "tenure": {
+              "tenureType": "FREEHOLD"
+            },
+            "letAvailableDate": null,
+            "listingUpdate": {
+              "listingUpdateReason": "new",
+              "listingUpdateDate": "2026-08-01T10:44:04Z"
+            },
+            "price": {
+              "amount": 250000,
+              "frequency": "not specified",
+              "currencyCode": "GBP",
+              "displayPrices": [
+                {
+                  "displayPrice": "£250,000",
+                  "displayPriceQualifier": "Guide Price"
+                }
+              ]
+            },
+            "customer": {
+              "branchDisplayName": "Haybrook, Swinton",
+              "brandTradingName": "Haybrook"
+            },
+            "transactionType": "buy",
+            "auction": false,
+            "displaySize": "",
+            "propertyUrl": "/properties/91528653#/?channel=RES_BUY",
+            "channel": "BUY",
+            "firstVisibleDate": "2026-08-01T10:38:25Z",
+            "keyFeatures": [
+              {
+                "order": 1,
+                "description": "Traditional Semi Detached Home",
+                "htmlDescription": "Traditional Semi Detached Home"
+              },
+              {
+                "order": 2,
+                "description": "Extended To The Rear",
+                "htmlDescription": "Extended To The Rear"
+              },
+              {
+                "order": 3,
+                "description": "Substantial Garden",
+                "htmlDescription": "Substantial Garden"
+              },
+              {
+                "order": 4,
+                "description": "Move In Ready - No Chain",
+                "htmlDescription": "Move In Ready - No Chain"
+              },
+              {
+                "order": 5,
+                "description": "High Sought After Area",
+                "htmlDescription": "High Sought After Area"
+              },
+              {
+                "order": 6,
+                "description": "Early Viewings Recommended",
+                "htmlDescription": "Early Viewings Recommended"
+              }
+            ],
+            "propertyImages": {
+              "images": [
+                {
+                  "srcUrl": "https://media.rightmove.co.uk:443/dir/crop/10:9-16:9/property-photo/3d0dabf2c/91528653/3d0dabf2cd94e914af9afde1c65b5c97_max_476x317.jpeg"
+                },
+                {
+                  "srcUrl": "https://media.rightmove.co.uk:443/dir/crop/10:9-16:9/property-photo/5b980b3c3/91528653/5b980b3c3eb5e66766b70d015ab6e7e9_max_476x317.jpeg"
+                }
+              ]
+            },
+            "propertyTypeFullDescription": "3 bedroom semi-detached house for sale",
+            "displayStatus": ""
+          },
+          {
+            "id": 170609327,
+            "bedrooms": 3,
+            "bathrooms": 1,
+            "numberOfImages": 17,
+            "summary": "**Guide Price £220,000 - £230,000** Beautifully renovated three-bedroom terrace property offering modern living with character and charm. Featuring a stylish interior, this home boasts spacious bedrooms, a contemporary kitchen, and private off-street parking with an EV charge point.",
+            "displayAddress": "St. Johns Road, CHESTERFIELD",
+            "location": {
+              "latitude": 53.26004,
+              "longitude": -1.43376
+            },
+            "propertySubType": "Terraced",
+            "tenure": {
+              "tenureType": "FREEHOLD"
+            },
+            "letAvailableDate": null,
+            "listingUpdate": {
+              "listingUpdateReason": "price_reduced",
+              "listingUpdateDate": "2026-08-01T10:20:11Z"
+            },
+            "price": {
+              "amount": 220000,
+              "frequency": "not specified",
+              "currencyCode": "GBP",
+              "displayPrices": [
+                {
+                  "displayPrice": "£220,000",
+                  "displayPriceQualifier": ""
+                }
+              ]
+            },
+            "customer": {
+              "branchDisplayName": "William H. Brown, Chesterfield",
+              "brandTradingName": "William H. Brown"
+            },
+            "transactionType": "buy",
+            "auction": false,
+            "displaySize": "",
+            "propertyUrl": "/properties/170609327#/?channel=RES_BUY",
+            "channel": "BUY",
+            "firstVisibleDate": "2025-12-26T01:11:15Z",
+            "keyFeatures": [
+              {
+                "order": 1,
+                "description": "**Guide Price £220,000 - £230,000**",
+                "htmlDescription": "**Guide Price £220,000 - £230,000**"
+              },
+              {
+                "order": 2,
+                "description": "COUNCIL TAX BAND B",
+                "htmlDescription": "COUNCIL TAX BAND B"
+              },
+              {
+                "order": 3,
+                "description": "PRIVATE OFF STREET PARKING WITH EV CHARGER",
+                "htmlDescription": "PRIVATE OFF STREET PARKING WITH EV CHARGER"
+              },
+              {
+                "order": 4,
+                "description": "COMPLETELY RENOVATED OVER 5 YEARS",
+                "htmlDescription": "COMPLETELY RENOVATED OVER 5 YEARS"
+              },
+              {
+                "order": 5,
+                "description": "WELL PROPORTIONED ROOMS SIZES",
+                "htmlDescription": "WELL PROPORTIONED ROOMS SIZES"
+              },
+              {
+                "order": 6,
+                "description": "SUMMERHOUSE WITH LOG BURNER",
+                "htmlDescription": "SUMMERHOUSE WITH LOG BURNER"
+              },
+              {
+                "order": 7,
+                "description": "10 FULLY OWNED SOLAR PANELS",
+                "htmlDescription": "10 FULLY OWNED SOLAR PANELS"
+              },
+              {
+                "order": 8,
+                "description": "TRADITIONAL HIGH CEILINGS",
+                "htmlDescription": "TRADITIONAL HIGH CEILINGS"
+              }
+            ],
+            "propertyImages": {
+              "images": [
+                {
+                  "srcUrl": "https://media.rightmove.co.uk:443/dir/crop/10:9-16:9/property-photo/1ec3c12ff/170609327/1ec3c12fffd2b83670103d9e7695c498_max_476x317.jpeg"
+                },
+                {
+                  "srcUrl": "https://media.rightmove.co.uk:443/dir/crop/10:9-16:9/property-photo/43f98f82c/170609327/43f98f82cadf44f8e13713b458803e10_max_476x317.jpeg"
+                }
+              ]
+            },
+            "propertyTypeFullDescription": "3 bedroom terraced house for sale",
+            "displayStatus": ""
+          },
+          {
+            "id": 173411717,
+            "bedrooms": 3,
+            "bathrooms": 2,
+            "numberOfImages": 45,
+            "summary": "Guide Price £290,000 - £300,000 Located in a popular residential area of Rotherham, this well-presented and spacious three-bedroom home offers modern living throughout—perfect for families or first-time buyers.",
+            "displayAddress": "Far Field Road, Herringthorpe, Rotherham, S65",
+            "location": {
+              "latitude": 53.422368,
+              "longitude": -1.318706
+            },
+            "propertySubType": "Semi-Detached",
+            "tenure": {
+              "tenureType": "FREEHOLD"
+            },
+            "letAvailableDate": null,
+            "listingUpdate": {
+              "listingUpdateReason": "price_reduced",
+              "listingUpdateDate": "2026-08-01T09:20:15Z"
+            },
+            "price": {
+              "amount": 290000,
+              "frequency": "not specified",
+              "currencyCode": "GBP",
+              "displayPrices": [
+                {
+                  "displayPrice": "£290,000",
+                  "displayPriceQualifier": "Guide Price"
+                }
+              ]
+            },
+            "customer": {
+              "branchDisplayName": "Yopa, East Midlands & Yorkshire",
+              "brandTradingName": "Yopa"
+            },
+            "transactionType": "buy",
+            "auction": false,
+            "displaySize": "",
+            "propertyUrl": "/properties/173411717#/?channel=RES_BUY",
+            "channel": "BUY",
+            "firstVisibleDate": "2026-03-18T09:13:19Z",
+            "keyFeatures": [
+              {
+                "order": 1,
+                "description": "Guide Price £290,000 - £300,000",
+                "htmlDescription": "Guide Price £290,000 - £300,000"
+              },
+              {
+                "order": 2,
+                "description": "Must View!!",
+                "htmlDescription": "Must View!!"
+              },
+              {
+                "order": 3,
+                "description": "Three Bedrooms",
+                "htmlDescription": "Three Bedrooms"
+              },
+              {
+                "order": 4,
+                "description": "Open Plan Kitchen Diner and Family Room",
+                "htmlDescription": "Open Plan Kitchen Diner and Family Room"
+              },
+              {
+                "order": 5,
+                "description": "Downstairs WC",
+                "htmlDescription": "Downstairs WC"
+              },
+              {
+                "order": 6,
+                "description": "Landscaped Private Rear Garden",
+                "htmlDescription": "Landscaped Private Rear Garden"
+              }
+            ],
+            "propertyImages": {
+              "images": [
+                {
+                  "srcUrl": "https://media.rightmove.co.uk:443/dir/crop/10:9-16:9/property-photo/1bdd7d516/173411717/1bdd7d5167b4191919457bd932f9d571_max_476x317.jpeg"
+                },
+                {
+                  "srcUrl": "https://media.rightmove.co.uk:443/dir/crop/10:9-16:9/property-photo/f8b47b39d/173411717/f8b47b39d0550e0af54cb3cbb0507232_max_476x317.jpeg"
+                }
+              ]
+            },
+            "propertyTypeFullDescription": "3 bedroom semi-detached house for sale",
+            "displayStatus": ""
+          },
+          {
+            "id": 88120953,
+            "bedrooms": 3,
+            "bathrooms": 2,
+            "numberOfImages": 17,
+            "summary": "This well presented three-bedroom semi detached home offers generous and versatile living accommodation, ideal for modern family life. Situated in a highly regarded area of Chesterfield, the property enjoys excellent access to local amenities, well regarded schools, and convenient bus routes, mak...",
+            "displayAddress": "Stanley Avenue, Inkersall, Chesterfield, Derbyshire, S43",
+            "location": {
+              "latitude": 53.25227,
+              "longitude": -1.37241
+            },
+            "propertySubType": "Semi-Detached",
+            "tenure": {
+              "tenureType": "FREEHOLD"
+            },
+            "letAvailableDate": null,
+            "listingUpdate": {
+              "listingUpdateReason": "price_reduced",
+              "listingUpdateDate": "2026-08-01T02:48:48Z"
+            },
+            "price": {
+              "amount": 210000,
+              "frequency": "not specified",
+              "currencyCode": "GBP",
+              "displayPrices": [
+                {
+                  "displayPrice": "£210,000",
+                  "displayPriceQualifier": "Offers Over"
+                }
+              ]
+            },
+            "customer": {
+              "branchDisplayName": "Frank Innes, Chesterfield",
+              "brandTradingName": "Frank Innes"
+            },
+            "transactionType": "buy",
+            "auction": false,
+            "displaySize": "",
+            "propertyUrl": "/properties/88120953#/?channel=RES_BUY",
+            "channel": "BUY",
+            "firstVisibleDate": "2026-05-06T13:33:16Z",
+            "keyFeatures": [],
+            "propertyImages": {
+              "images": [
+                {
+                  "srcUrl": "https://media.rightmove.co.uk:443/dir/crop/10:9-16:9/property-photo/66b2e1f5b/88120953/66b2e1f5b5daf7303df3422895ca1cfe_max_476x317.jpeg"
+                },
+                {
+                  "srcUrl": "https://media.rightmove.co.uk:443/dir/crop/10:9-16:9/property-photo/c29c4da9d/88120953/c29c4da9d8359c0b15f4acef205dac7a_max_476x317.jpeg"
+                }
+              ]
+            },
+            "propertyTypeFullDescription": "3 bedroom semi-detached house for sale",
+            "displayStatus": ""
+          }
+        ]
+      }
+    }
+  }
+}

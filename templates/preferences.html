@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>House Finder - Search preferences</title>
+<style>
+  :root {
+    --bg:#f5f6f8; --panel:#fff; --ink:#1c2430; --muted:#6b7684;
+    --line:#dfe3e8; --accent:#1f3864; --ok:#16a34a; --err:#dc2626;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12161c; --panel:#1a1f27; --ink:#e6e9ee; --muted:#939daa;
+            --line:#2a313b; --accent:#7aa2e3; }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 -apple-system,
+    BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; padding:0 0 90px;
+  }
+  header { background:var(--accent); color:#fff; padding:18px 20px; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:4px 0 0; font-size:13px; opacity:.85; }
+  main { max-width:820px; margin:0 auto; padding:18px 16px; }
+  section {
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:16px 18px; margin-bottom:16px;
+  }
+  section h2 { margin:0 0 4px; font-size:16px; }
+  section .hint { color:var(--muted); font-size:13px; margin:0 0 14px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:150px; }
+  label { display:block; font-size:12px; color:var(--muted); margin:0 0 3px; }
+  input, select, textarea {
+    width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:7px;
+    background:var(--bg); color:var(--ink); font:inherit; font-size:14px;
+  }
+  textarea { min-height:92px; resize:vertical; }
+  .field { margin-bottom:12px; }
+  .areas .area {
+    display:flex; gap:8px; align-items:flex-end; margin-bottom:8px;
+  }
+  .areas .area > div:first-child { flex:2; }
+  .areas .area > div:nth-child(2) { flex:1; }
+  button {
+    font:inherit; font-size:14px; padding:8px 14px; border-radius:7px;
+    border:1px solid var(--line); background:var(--panel); color:var(--ink); cursor:pointer;
+  }
+  button:hover { border-color:var(--accent); }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+  button.link { border:0; background:none; color:var(--err); padding:8px 6px; }
+  .checks { display:flex; flex-wrap:wrap; gap:10px 18px; }
+  .checks label { display:flex; align-items:center; gap:6px; font-size:14px; color:var(--ink); }
+  .checks input { width:auto; }
+  .tabs { display:flex; gap:6px; margin-bottom:14px; }
+  .tabs button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .bar {
+    position:fixed; left:0; right:0; bottom:0; background:var(--panel);
+    border-top:1px solid var(--line); padding:12px 20px; display:flex;
+    align-items:center; gap:14px; justify-content:flex-end;
+  }
+  #msg { margin-right:auto; font-size:13px; }
+  #msg.ok { color:var(--ok); } #msg.err { color:var(--err); }
+  .disabled { opacity:.45; pointer-events:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Search preferences</h1>
+  <p>Changes are saved to config/profile.json and used on the next run.</p>
+</header>
+
+<main>
+  <section>
+    <h2>What are you looking for?</h2>
+    <p class="hint">Turn on whichever you want the pipeline to search for.</p>
+    <div class="checks">
+      <label><input type="checkbox" id="mode-buy"> Properties to buy</label>
+      <label><input type="checkbox" id="mode-rent"> Properties to rent</label>
+    </div>
+    <div class="field" style="margin-top:12px;">
+      <label for="name">Your name (used in the dashboard title only)</label>
+      <input id="name" type="text" placeholder="e.g. Dave">
+    </div>
+  </section>
+
+  <div class="tabs">
+    <button id="tab-buy" class="active" onclick="showTab('buy')">Buying</button>
+    <button id="tab-rent" onclick="showTab('rent')">Renting</button>
+  </div>
+
+  <div id="panel-buy"></div>
+  <div id="panel-rent" hidden></div>
+
+  <section>
+    <h2>Running</h2>
+    <div class="row">
+      <div class="field">
+        <label for="run-mode">Mode</label>
+        <select id="run-mode">
+          <option value="passive">passive - save results, no email</option>
+          <option value="active">active - save results and email a digest</option>
+          <option value="paused">paused - skip every run</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="cap">Daily AI spend cap (GBP)</label>
+        <input id="cap" type="number" step="0.25" min="0">
+      </div>
+      <div class="field">
+        <label for="stale">Mark gone after (days unseen)</label>
+        <input id="stale" type="number" min="1">
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="bar">
+  <span id="msg"></span>
+  <button onclick="load()">Reload</button>
+  <button class="primary" onclick="save()">Save changes</button>
+</div>
+
+<script>
+let profile = null;
+
+const TYPES = [
+  ['detached','Detached'], ['semi_detached','Semi-detached'], ['terraced','Terraced'],
+  ['flat','Flat / apartment'], ['bungalow','Bungalow'], ['land','Land / plot']
+];
+
+function el(id) { return document.getElementById(id); }
+
+function panelHtml(mode) {
+  const rent = mode === 'rent';
+  const priceLabel = rent ? 'Monthly rent (GBP pcm)' : 'Price (GBP)';
+  return `
+  <section>
+    <h2>Where ${rent ? 'to rent' : 'to buy'}</h2>
+    <p class="hint">A postcode, town or area, plus how far around it to search.</p>
+    <div class="areas" id="${mode}-areas"></div>
+    <button onclick="addArea('${mode}')">+ Add another area</button>
+  </section>
+
+  <section>
+    <h2>${priceLabel} and size</h2>
+    <div class="row">
+      <div class="field"><label>Minimum</label>
+        <input id="${mode}-price-min" type="number" step="1000" min="0"></div>
+      <div class="field"><label>Maximum</label>
+        <input id="${mode}-price-max" type="number" step="1000" min="0"></div>
+      <div class="field"><label>Min bedrooms</label>
+        <input id="${mode}-beds-min" type="number" min="0" max="10"></div>
+      <div class="field"><label>Min bathrooms</label>
+        <input id="${mode}-baths-min" type="number" min="0" max="10"></div>
+    </div>
+    <div class="field">
+      <label>Property types (leave all unticked to allow any)</label>
+      <div class="checks" id="${mode}-types"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Must-haves and nice-to-haves</h2>
+    <p class="hint">One per line. Must-haves weigh heavily in the score;
+      nice-to-haves are a bonus. Plain words work best - "garden", "garage",
+      "off-street parking".</p>
+    <div class="row">
+      <div class="field"><label>Must-haves</label>
+        <textarea id="${mode}-must"></textarea></div>
+      <div class="field"><label>Nice-to-haves</label>
+        <textarea id="${mode}-nice"></textarea></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Rule out</h2>
+    ${rent ? `
+    <div class="checks">
+      <label><input type="checkbox" id="rent-no-share"> No house shares / rooms</label>
+      <label><input type="checkbox" id="rent-no-student"> No student-only lets</label>
+      <label><input type="checkbox" id="rent-no-let-agreed"> Hide let agreed</label>
+    </div>` : `
+    <div class="checks">
+      <label><input type="checkbox" id="buy-no-retirement"> No retirement homes</label>
+      <label><input type="checkbox" id="buy-no-shared"> No shared ownership</label>
+      <label><input type="checkbox" id="buy-no-park"> No park / mobile homes</label>
+      <label><input type="checkbox" id="buy-no-auction"> No auction properties</label>
+      <label><input type="checkbox" id="buy-no-newbuild"> No new builds</label>
+      <label><input type="checkbox" id="buy-no-sstc"> Hide sold STC</label>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <div class="field"><label>Reject leasehold with fewer years left than</label>
+        <input id="buy-lease" type="number" min="0" placeholder="e.g. 90"></div>
+    </div>`}
+    <div class="field" style="margin-top:12px;">
+      <label>Words that rule a property out (one per line)</label>
+      <textarea id="${mode}-keywords" placeholder="cash buyers only&#10;japanese knotweed"></textarea>
+    </div>
+    <div class="row">
+      <div class="field"><label>Ignore listings older than (days)</label>
+        <input id="${mode}-maxdays" type="number" min="1"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>In your own words</h2>
+    <p class="hint">This is read by the AI when scoring. Say what you actually
+      care about - the things a checkbox cannot capture.</p>
+    <textarea id="${mode}-freetext" style="min-height:120px;"></textarea>
+  </section>`;
+}
+
+function areaHtml(mode, index, area) {
+  const radii = [0, 0.25, 0.5, 1, 3, 5, 10, 15, 20, 30, 40];
+  const selected = area.radius_miles ?? 3;
+  return `<div class="area" data-index="${index}">
+    <div><label>Postcode or place</label>
+      <input class="area-place" value="${(area.postcode_or_place||'').replace(/"/g,'&quot;')}"
+             placeholder="e.g. S10 or Sheffield"></div>
+    <div><label>Within</label>
+      <select class="area-radius">
+        ${radii.map(r => `<option value="${r}" ${r == selected ? 'selected' : ''}>
+          ${r === 0 ? 'this area only' : r + ' miles'}</option>`).join('')}
+      </select></div>
+    <button class="link" onclick="removeArea('${mode}', ${index})">Remove</button>
+  </div>`;
+}
+
+function renderAreas(mode) {
+  const areas = (profile[mode]?.search_areas) || [];
+  el(`${mode}-areas`).innerHTML = areas.length
+    ? areas.map((a, i) => areaHtml(mode, i, a)).join('')
+    : '<p class="hint">No areas yet - add one below.</p>';
+}
+
+function addArea(mode) {
+  collect();
+  profile[mode] = profile[mode] || {};
+  profile[mode].search_areas = profile[mode].search_areas || [];
+  profile[mode].search_areas.push({ label:'', postcode_or_place:'', radius_miles:3 });
+  renderAreas(mode);
+}
+
+function removeArea(mode, index) {
+  collect();
+  profile[mode].search_areas.splice(index, 1);
+  renderAreas(mode);
+}
+
+function fillPanel(mode) {
+  const c = profile[mode] || {};
+  const rent = mode === 'rent';
+  const price = (rent ? c.price_pcm : c.price) || {};
+
+  el(`${mode}-price-min`).value = price.min ?? '';
+  el(`${mode}-price-max`).value = price.max ?? '';
+  el(`${mode}-beds-min`).value = c.bedrooms_min ?? '';
+  el(`${mode}-baths-min`).value = c.bathrooms_min ?? '';
+  el(`${mode}-must`).value = (c.must_haves || []).join('\n');
+  el(`${mode}-nice`).value = (c.nice_to_haves || []).join('\n');
+  el(`${mode}-freetext`).value = (c.preferences_freetext || '').startsWith('REPLACE_ME')
+    ? '' : (c.preferences_freetext || '');
+  el(`${mode}-maxdays`).value = c.max_days_since_listed ?? '';
+
+  const ex = c.exclusions || {};
+  el(`${mode}-keywords`).value = (ex.keyword_excludes || []).join('\n');
+
+  el(`${mode}-types`).innerHTML = TYPES.map(([value, label]) =>
+    `<label><input type="checkbox" class="ptype" value="${value}"
+      ${(c.property_types || []).includes(value) ? 'checked' : ''}> ${label}</label>`
+  ).join('');
+
+  if (rent) {
+    el('rent-no-share').checked = !!ex.no_house_share;
+    el('rent-no-student').checked = !!ex.no_student_only;
+    el('rent-no-let-agreed').checked = !c.include_let_agreed;
+  } else {
+    el('buy-no-retirement').checked = !!ex.no_retirement_homes;
+    el('buy-no-shared').checked = !!ex.no_shared_ownership;
+    el('buy-no-park').checked = !!ex.no_park_homes;
+    el('buy-no-auction').checked = !!ex.no_auction;
+    el('buy-no-newbuild').checked = !!ex.no_new_build;
+    el('buy-no-sstc').checked = !c.include_sold_stc;
+    el('buy-lease').value = ex.no_leasehold_under_years ?? '';
+  }
+  renderAreas(mode);
+}
+
+function lines(id) {
+  return el(id).value.split('\n').map(s => s.trim()).filter(Boolean);
+}
+function num(id) {
+  const v = el(id).value.trim();
+  return v === '' ? null : Number(v);
+}
+
+function collectPanel(mode) {
+  const rent = mode === 'rent';
+  const c = profile[mode] = profile[mode] || {};
+
+  const areas = [];
+  document.querySelectorAll(`#${mode}-areas .area`).forEach(node => {
+    const place = node.querySelector('.area-place').value.trim();
+    if (place) {
+      areas.push({
+        label: place,
+        postcode_or_place: place,
+        radius_miles: Number(node.querySelector('.area-radius').value)
+      });
+    }
+  });
+  c.search_areas = areas;
+
+  const price = { min: num(`${mode}-price-min`) ?? 0, max: num(`${mode}-price-max`) ?? 0 };
+  if (rent) { c.price_pcm = price; delete c.price; } else { c.price = price; }
+
+  c.bedrooms_min = num(`${mode}-beds-min`);
+  c.bathrooms_min = num(`${mode}-baths-min`);
+  c.must_haves = lines(`${mode}-must`);
+  c.nice_to_haves = lines(`${mode}-nice`);
+  c.preferences_freetext = el(`${mode}-freetext`).value.trim();
+  c.max_days_since_listed = num(`${mode}-maxdays`);
+
+  c.property_types = Array.from(
+    document.querySelectorAll(`#${mode}-types .ptype:checked`)
+  ).map(i => i.value);
+
+  const ex = c.exclusions = c.exclusions || {};
+  ex.keyword_excludes = lines(`${mode}-keywords`);
+
+  if (rent) {
+    ex.no_house_share = el('rent-no-share').checked;
+    ex.no_student_only = el('rent-no-student').checked;
+    c.include_let_agreed = !el('rent-no-let-agreed').checked;
+  } else {
+    ex.no_retirement_homes = el('buy-no-retirement').checked;
+    ex.no_shared_ownership = el('buy-no-shared').checked;
+    ex.no_park_homes = el('buy-no-park').checked;
+    ex.no_auction = el('buy-no-auction').checked;
+    ex.no_new_build = el('buy-no-newbuild').checked;
+    c.include_sold_stc = !el('buy-no-sstc').checked;
+    ex.no_leasehold_under_years = num('buy-lease');
+  }
+}
+
+function collect() {
+  profile.name = el('name').value.trim() || 'REPLACE_ME';
+  const modes = [];
+  if (el('mode-buy').checked) modes.push('buy');
+  if (el('mode-rent').checked) modes.push('rent');
+  profile.modes_enabled = modes;
+  collectPanel('buy');
+  collectPanel('rent');
+}
+
+function showTab(mode) {
+  el('panel-buy').hidden = mode !== 'buy';
+  el('panel-rent').hidden = mode !== 'rent';
+  el('tab-buy').classList.toggle('active', mode === 'buy');
+  el('tab-rent').classList.toggle('active', mode === 'rent');
+}
+
+function message(text, kind) {
+  const m = el('msg');
+  m.textContent = text;
+  m.className = kind || '';
+  if (kind === 'ok') setTimeout(() => { m.textContent = ''; m.className = ''; }, 4000);
+}
+
+async function load() {
+  const res = await fetch('/api/profile');
+  const data = await res.json();
+  if (!data.ok) { message(data.error || 'Could not load profile', 'err'); return; }
+
+  profile = data.profile;
+  el('panel-buy').innerHTML = panelHtml('buy');
+  el('panel-rent').innerHTML = panelHtml('rent');
+
+  el('name').value = (profile.name === 'REPLACE_ME') ? '' : (profile.name || '');
+  const modes = profile.modes_enabled || ['buy'];
+  el('mode-buy').checked = modes.includes('buy');
+  el('mode-rent').checked = modes.includes('rent');
+
+  fillPanel('buy');
+  fillPanel('rent');
+  message('Loaded.', 'ok');
+}
+
+async function save() {
+  collect();
+  const settings = {
+    mode: el('run-mode').value,
+    quota_soft_cap_gbp: el('cap').value || '1.5',
+    stale_listing_days: el('stale').value || '21'
+  };
+  const res = await fetch('/api/profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ profile, settings })
+  });
+  const data = await res.json();
+  message(data.ok ? 'Saved. Run `house-finder run` to use it.' : data.error, data.ok ? 'ok' : 'err');
+}
+
+load();
+</script>
+</body>
+</html>

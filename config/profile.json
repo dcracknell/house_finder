@@ -1,0 +1,91 @@
+{
+  "name": "REPLACE_ME",
+  "modes_enabled": [
+    "buy"
+  ],
+  "buy": {
+    "search_areas": [
+      {
+        "label": "Sheffield",
+        "postcode_or_place": "Sheffield",
+        "radius_miles": 3
+      }
+    ],
+    "price": {
+      "min": 150000,
+      "max": 300000
+    },
+    "bedrooms_min": 2,
+    "bedrooms_max": null,
+    "bathrooms_min": 1,
+    "property_types": [
+      "detached",
+      "semi_detached",
+      "terraced",
+      "bungalow"
+    ],
+    "must_haves": [
+      "garden"
+    ],
+    "nice_to_haves": [
+      "off-street parking",
+      "garage",
+      "south facing garden",
+      "no chain"
+    ],
+    "exclusions": {
+      "no_leasehold_under_years": 90,
+      "no_retirement_homes": true,
+      "no_shared_ownership": true,
+      "no_park_homes": true,
+      "no_new_build": false,
+      "no_auction": true,
+      "keyword_excludes": [
+        "cash buyers only",
+        "japanese knotweed",
+        "above a takeaway"
+      ]
+    },
+    "max_days_since_listed": 60,
+    "include_sold_stc": false,
+    "preferences_freetext": "REPLACE_ME - describe in plain English what you actually want. e.g. 'A family home on a quiet street, not on a main road, with room to extend. Happy to renovate a tired kitchen or bathroom, but not looking for a full structural project. Good local schools and a train station within walking distance matter a lot.'"
+  },
+  "rent": {
+    "search_areas": [
+      {
+        "label": "Sheffield",
+        "postcode_or_place": "Sheffield",
+        "radius_miles": 3
+      }
+    ],
+    "price_pcm": {
+      "min": 0,
+      "max": 1200
+    },
+    "bedrooms_min": 1,
+    "bedrooms_max": null,
+    "bathrooms_min": 1,
+    "property_types": [
+      "flat",
+      "terraced",
+      "semi_detached"
+    ],
+    "furnished": "any",
+    "min_tenancy_months": 6,
+    "must_haves": [],
+    "nice_to_haves": [
+      "garden",
+      "parking",
+      "bills included"
+    ],
+    "exclusions": {
+      "no_house_share": true,
+      "no_student_only": true,
+      "keyword_excludes": []
+    },
+    "max_days_since_listed": 30,
+    "include_let_agreed": false,
+    "preferences_freetext": "REPLACE_ME - describe what you want in a rental."
+  },
+  "rejected_property_cooldown_days": 90
+}

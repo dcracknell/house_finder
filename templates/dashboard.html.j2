@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>House Finder{% if profile_name %} - {{ profile_name }}{% endif %}</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --ink: #1c2430; --muted: #6b7684;
+    --line: #dfe3e8; --accent: #1f3864;
+    --s9: #16a34a; --s8: #65a30d; --s6: #ca8a04; --s0: #94a3b8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161c; --panel: #1a1f27; --ink: #e6e9ee; --muted: #939daa;
+      --line: #2a313b; --accent: #7aa2e3;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--ink); display: flex; flex-direction: column;
+  }
+  header {
+    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  h1 { font-size: 16px; margin: 0; font-weight: 650; }
+  .stats { display: flex; gap: 14px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+  .stats b { color: var(--ink); }
+  .layout { flex: 1; display: flex; min-height: 0; }
+  #map { flex: 1; min-height: 320px; }
+  aside {
+    width: 380px; max-width: 42vw; background: var(--panel);
+    border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0;
+  }
+  .filters {
+    padding: 12px 14px; border-bottom: 1px solid var(--line);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px;
+  }
+  .filters label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 2px; }
+  .filters .full { grid-column: 1 / -1; }
+  input, select {
+    width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg); color: var(--ink); font-size: 13px;
+  }
+  .list { overflow-y: auto; flex: 1; }
+  .card {
+    padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer;
+    display: flex; gap: 10px;
+  }
+  .card:hover { background: rgba(127,127,127,.08); }
+  .card.active { background: rgba(31,56,100,.10); }
+  .thumb {
+    width: 74px; height: 58px; border-radius: 6px; object-fit: cover;
+    background: var(--bg); flex-shrink: 0;
+  }
+  .card-body { min-width: 0; flex: 1; }
+  .card-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .price { font-weight: 650; }
+  .badge {
+    font-size: 11px; font-weight: 700; color: #fff; border-radius: 10px;
+    padding: 1px 7px; flex-shrink: 0;
+  }
+  .addr { color: var(--muted); font-size: 12px; overflow: hidden;
+          text-overflow: ellipsis; white-space: nowrap; }
+  .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .why { font-size: 12px; margin-top: 3px; }
+  .tag {
+    display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 4px;
+    background: rgba(127,127,127,.16); margin: 3px 3px 0 0;
+  }
+  .tag.warn { background: rgba(220,38,38,.18); }
+  .tag.good { background: rgba(22,163,74,.18); }
+  .popup { font: 13px/1.45 inherit; max-width: 260px; }
+  .popup h3 { margin: 0 0 3px; font-size: 14px; }
+  .popup a { color: var(--accent); }
+  .empty { padding: 24px 14px; color: var(--muted); text-align: center; }
+  .unmapped { padding: 10px 14px; border-top: 1px solid var(--line); font-size: 12px; }
+  .unmapped summary { cursor: pointer; color: var(--muted); }
+  .marker-pin {
+    width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+    border: 2px solid rgba(255,255,255,.9); box-shadow: 0 1px 4px rgba(0,0,0,.4);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .marker-pin span {
+    transform: rotate(45deg); color: #fff; font-size: 10px; font-weight: 700;
+  }
+  .marker-pin.rent { border-radius: 6px; transform: none; }
+  .marker-pin.rent span { transform: none; }
+  @media (max-width: 780px) {
+    .layout { flex-direction: column; }
+    aside { width: 100%; max-width: none; border-left: 0; border-top: 1px solid var(--line); }
+    #map { min-height: 46vh; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>House Finder{% if profile_name %} &mdash; {{ profile_name }}{% endif %}</h1>
+  <div class="stats">
+    <span><b id="shown">0</b> shown</span>
+    <span><b>{{ stats.total }}</b> tracked</span>
+    <span><b>{{ stats.sale }}</b> for sale</span>
+    <span><b>{{ stats.rent }}</b> to rent</span>
+    <span><b>{{ stats.strong }}</b> scoring 8+</span>
+    <span>updated {{ generated_at }}</span>
+  </div>
+</header>
+
+<div class="layout">
+  <div id="map"></div>
+  <aside>
+    <div class="filters">
+      <div>
+        <label for="f-type">Show</label>
+        <select id="f-type">
+          <option value="all">Sale &amp; rent</option>
+          <option value="sale">For sale only</option>
+          <option value="rent">To rent only</option>
+        </select>
+      </div>
+      <div>
+        <label for="f-score">Min score</label>
+        <select id="f-score">
+          <option value="0">Any score</option>
+          <option value="5">5+</option>
+          <option value="6.5">6.5+</option>
+          <option value="8">8+ (strong)</option>
+        </select>
+      </div>
+      <div>
+        <label for="f-min">Min price</label>
+        <input id="f-min" type="number" placeholder="no min" step="5000">
+      </div>
+      <div>
+        <label for="f-max">Max price</label>
+        <input id="f-max" type="number" placeholder="no max" step="5000">
+      </div>
+      <div>
+        <label for="f-beds">Min beds</label>
+        <select id="f-beds">
+          <option value="0">Any</option>
+          <option value="1">1+</option><option value="2">2+</option>
+          <option value="3">3+</option><option value="4">4+</option>
+          <option value="5">5+</option>
+        </select>
+      </div>
+      <div>
+        <label for="f-status">Status</label>
+        <select id="f-status">
+          <option value="all">All</option>
+          <option value="new">New only</option>
+          <option value="interested">Interested</option>
+          <option value="viewing_booked">Viewing booked</option>
+          <option value="viewed">Viewed</option>
+          <option value="offer_made">Offer made</option>
+        </select>
+      </div>
+      <div class="full">
+        <label for="f-text">Search address, agent or description</label>
+        <input id="f-text" type="search" placeholder="e.g. Norton Lees, bungalow, no chain">
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+    {% if unmapped %}
+    <div class="unmapped">
+      <details>
+        <summary>{{ unmapped|length }} propert{{ 'y' if unmapped|length == 1 else 'ies' }}
+          could not be placed on the map</summary>
+        <ul>
+          {% for p in unmapped %}
+          <li><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.addr or p.title }}</a>
+            &mdash; {{ p.priceText }}</li>
+          {% endfor %}
+        </ul>
+      </details>
+    </div>
+    {% endif %}
+  </aside>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+const PROPS = {{ properties_json | safe }};
+const CENTRE = {{ centre_json | safe }};
+
+const map = L.map('map', { scrollWheelZoom: true }).setView(CENTRE, 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+
+const layer = L.layerGroup().addTo(map);
+const listEl = document.getElementById('list');
+const shownEl = document.getElementById('shown');
+const markers = {};
+let activeId = null;
+
+function scoreColour(s) {
+  if (s === null || s === undefined) return '#94a3b8';
+  if (s >= 8) return '#16a34a';
+  if (s >= 6.5) return '#65a30d';
+  if (s >= 5) return '#ca8a04';
+  return '#94a3b8';
+}
+
+function icon(p) {
+  const cls = p.t === 'rent' ? 'marker-pin rent' : 'marker-pin';
+  const label = p.score === null || p.score === undefined ? '?' : p.score.toFixed(0);
+  return L.divIcon({
+    className: '',
+    html: `<div class="${cls}" style="background:${scoreColour(p.score)}"><span>${label}</span></div>`,
+    iconSize: [26, 26],
+    iconAnchor: p.t === 'rent' ? [13, 13] : [13, 26],
+    popupAnchor: [0, -24]
+  });
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+  ));
+}
+
+function extras(p) {
+  const out = [];
+  if (p.vsLocal !== null && p.vsLocal !== undefined) {
+    const cls = p.vsLocal > 10 ? 'warn' : (p.vsLocal < -5 ? 'good' : '');
+    const sign = p.vsLocal > 0 ? '+' : '';
+    out.push(`<span class="tag ${cls}">${sign}${p.vsLocal.toFixed(0)}% vs local sold</span>`);
+  }
+  if (p.reduced) out.push('<span class="tag good">reduced</span>');
+  if (p.epc) out.push(`<span class="tag">EPC ${p.epc}</span>`);
+  if (p.flood) out.push(`<span class="tag warn">${p.flood} flood warning(s)</span>`);
+  if (p.crime !== null && p.crime !== undefined) {
+    out.push(`<span class="tag">${p.crime} crimes/yr nearby</span>`);
+  }
+  if (p.bband) out.push(`<span class="tag">${Math.round(p.bband)} Mbps</span>`);
+  if (p.tenure) out.push(`<span class="tag">${esc(p.tenure.replace(/_/g, ' '))}</span>`);
+  if (p.status && p.status !== 'new') {
+    out.push(`<span class="tag">${esc(p.status.replace(/_/g, ' '))}</span>`);
+  }
+  return out.join('');
+}
+
+function popupHtml(p) {
+  const bits = [];
+  if (p.beds) bits.push(`${p.beds} bed`);
+  if (p.baths) bits.push(`${p.baths} bath`);
+  if (p.sqft) bits.push(`${p.sqft} sqft`);
+  return `<div class="popup">
+    <h3>${esc(p.priceText)}${p.qual ? ' <small>(' + esc(p.qual) + ')</small>' : ''}</h3>
+    <div>${esc(p.addr)}</div>
+    <div style="color:var(--muted)">${esc(bits.join(' &middot; '))} &middot; ${esc(p.type.replace(/_/g,' '))}</div>
+    ${p.score !== null && p.score !== undefined
+      ? `<div style="margin-top:4px"><b>Score ${p.score.toFixed(1)}</b> &mdash; ${esc(p.why)}</div>` : ''}
+    <div style="margin-top:4px">${extras(p)}</div>
+    <div style="margin-top:6px"><a href="${esc(p.url)}" target="_blank" rel="noopener">View listing &rarr;</a></div>
+  </div>`;
+}
+
+function cardHtml(p) {
+  const bits = [];
+  if (p.beds) bits.push(`${p.beds} bed`);
+  if (p.baths) bits.push(`${p.baths} bath`);
+  if (p.sqft) bits.push(`${p.sqft} sqft`);
+  bits.push(p.type.replace(/_/g, ' '));
+  const score = (p.score === null || p.score === undefined) ? '?' : p.score.toFixed(1);
+  return `<div class="card" data-id="${esc(p.id)}">
+    ${p.img ? `<img class="thumb" src="${esc(p.img)}" alt="" loading="lazy">` : '<div class="thumb"></div>'}
+    <div class="card-body">
+      <div class="card-top">
+        <span class="price">${esc(p.priceText)}</span>
+        <span class="badge" style="background:${scoreColour(p.score)}">${score}</span>
+      </div>
+      <div class="addr">${esc(p.addr)}</div>
+      <div class="meta">${esc(bits.join(' &middot; '))}</div>
+      ${p.why ? `<div class="why">${esc(p.why)}</div>` : ''}
+      <div>${extras(p)}</div>
+    </div>
+  </div>`;
+}
+
+function currentFilters() {
+  return {
+    type: document.getElementById('f-type').value,
+    score: parseFloat(document.getElementById('f-score').value) || 0,
+    min: parseFloat(document.getElementById('f-min').value),
+    max: parseFloat(document.getElementById('f-max').value),
+    beds: parseInt(document.getElementById('f-beds').value, 10) || 0,
+    status: document.getElementById('f-status').value,
+    text: document.getElementById('f-text').value.trim().toLowerCase()
+  };
+}
+
+function matches(p, f) {
+  if (f.type !== 'all' && p.t !== f.type) return false;
+  if (f.score && (p.score || 0) < f.score) return false;
+  if (!isNaN(f.min) && p.price !== null && p.price < f.min) return false;
+  if (!isNaN(f.max) && p.price !== null && p.price > f.max) return false;
+  if (f.beds && (p.beds || 0) < f.beds) return false;
+  if (f.status !== 'all' && p.status !== f.status) return false;
+  if (f.text) {
+    const hay = `${p.addr} ${p.title} ${p.agent} ${p.why} ${p.matched.join(' ')} ${p.type}`.toLowerCase();
+    if (!hay.includes(f.text)) return false;
+  }
+  return true;
+}
+
+function render() {
+  const f = currentFilters();
+  const visible = PROPS.filter(p => matches(p, f));
+
+  layer.clearLayers();
+  Object.keys(markers).forEach(k => delete markers[k]);
+
+  visible.forEach(p => {
+    if (p.lat === null || p.lon === null) return;
+    const m = L.marker([p.lat, p.lon], { icon: icon(p) }).bindPopup(popupHtml(p));
+    m.on('click', () => highlight(p.id, false));
+    m.addTo(layer);
+    markers[p.id] = m;
+  });
+
+  listEl.innerHTML = visible.length
+    ? visible.map(cardHtml).join('')
+    : '<div class="empty">Nothing matches these filters.</div>';
+  shownEl.textContent = visible.length;
+
+  listEl.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => highlight(card.dataset.id, true));
+  });
+}
+
+function highlight(id, panTo) {
+  activeId = id;
+  listEl.querySelectorAll('.card').forEach(c => {
+    c.classList.toggle('active', c.dataset.id === id);
+  });
+  const card = listEl.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
+  if (card) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  const marker = markers[id];
+  if (marker && panTo) {
+    map.setView(marker.getLatLng(), Math.max(map.getZoom(), 15));
+    marker.openPopup();
+  }
+}
+
+['f-type','f-score','f-min','f-max','f-beds','f-status','f-text'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', render);
+  el.addEventListener('change', render);
+});
+
+render();
+
+const mapped = PROPS.filter(p => p.lat !== null && p.lon !== null);
+if (mapped.length > 1) {
+  map.fitBounds(L.latLngBounds(mapped.map(p => [p.lat, p.lon])), { padding: [40, 40] });
+}
+</script>
+</body>
+</html>
