@@ -31,6 +31,13 @@
   h1 { font-size: 16px; margin: 0; font-weight: 650; }
   .stats { display: flex; gap: 14px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
   .stats b { color: var(--ink); }
+  .actions { margin-left: auto; display: flex; gap: 8px; }
+  .actions a {
+    font-size: 12px; text-decoration: none; white-space: nowrap;
+    padding: 5px 10px; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--accent);
+  }
+  .actions a:hover { border-color: var(--accent); }
   .layout { flex: 1; display: flex; min-height: 0; }
   #map { flex: 1; min-height: 320px; }
   aside {
@@ -109,6 +116,10 @@
     <span><b>{{ stats.strong }}</b> scoring 8+</span>
     <span>updated {{ generated_at }}</span>
   </div>
+  <div class="actions">
+    <a id="edit-prefs" href="http://127.0.0.1:8765/" target="_blank" rel="noopener"
+       title="Change your search criteria. Run `house-finder ui` first if the editor is not already running.">Change what I am looking for</a>
+  </div>
 </header>
 
 <div class="layout">
@@ -186,6 +197,20 @@
 <script>
 const PROPS = {{ properties_json | safe }};
 const CENTRE = {{ centre_json | safe }};
+
+// The link in the header points at the local `house-finder ui` editor. When
+// this page is served from GitHub Pages there is no local server running, so
+// send people to the setup issue form on GitHub instead.
+(function preferencesLink() {
+  const link = document.getElementById('edit-prefs');
+  if (!link) return;
+  const user = location.hostname.match(/^([^.]+)\.github\.io$/);
+  const repo = location.pathname.split('/').filter(Boolean)[0];
+  if (!user || !repo) return;
+  link.href = 'https://github.com/' + user[1] + '/' + repo +
+    '/issues/new?template=house_search_profile.yml';
+  link.title = 'Opens the House search setup form on GitHub.';
+})();
 
 function initMap() {
 const map = L.map('map', { scrollWheelZoom: true }).setView(CENTRE, 12);
