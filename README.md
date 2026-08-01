@@ -107,6 +107,10 @@ or sync it to your phone.
 - Filter by sale/rent, price, bedrooms, score and status without reloading.
 - Anything that could not be placed on the map is listed underneath rather than
   quietly dropped.
+- "Change what I am looking for" in the header opens the preferences editor, so
+  you can adjust your criteria from the page you are already looking at. Locally
+  that is the `house-finder ui` server; on GitHub Pages it opens the setup issue
+  form instead.
 
 ---
 
