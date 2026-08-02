@@ -231,13 +231,20 @@ def run(
                 home_coords=home,
                 cooldown_days=int(criteria.get("rejected_property_cooldown_days", 90)),
             )
-            totals["kept"] += len(kept)
             click.echo(f"  {len(kept)} passed your filters")
 
             if kept and not no_enrich:
                 enrichment.enrich_records(
                     kept, sources, settings, conn, limit=enrich_limit
                 )
+                # Filters needing public-record data can only run now that
+                # enrichment has fetched it - still before any paid ranking.
+                pre_enrich = len(kept)
+                kept = filter_module.apply_enrichment_filters(kept, criteria)
+                if len(kept) < pre_enrich:
+                    click.echo(f"  {pre_enrich - len(kept)} dropped on enrichment data")
+
+            totals["kept"] += len(kept)
 
             if kept and not no_rank:
                 stored = dedup.load_stored(conn, [r.property_id for r in kept])
