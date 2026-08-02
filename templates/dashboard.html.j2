@@ -275,8 +275,8 @@ function githubUrl(path) {
 })();
 
 // "Search another area" - a one-off look somewhere that is not in your profile.
-// Locally the editor server does the work; on GitHub Pages there is nothing to
-// talk to, so point at the workflow that can do the same thing.
+// On this machine the editor server does the work. Anywhere else it hands the
+// same three answers to GitHub, which runs it for you.
 (function areaSearch() {
   const toggle = document.getElementById('try-area');
   const panel = document.getElementById('area-panel');
@@ -289,14 +289,47 @@ function githubUrl(path) {
     if (!panel.hidden && place) place.focus();
   });
 
+  // Nothing local to talk to. A static page cannot start a GitHub workflow on
+  // its own, so fill in the one-off area search form and let you press Create.
+  // That runs your existing criteria over the place you typed, once, and leaves
+  // your saved criteria and the scheduled runs alone.
   if (!ON_THIS_MACHINE) {
-    const workflow = githubUrl('/actions/workflows/daily_run.yml');
-    panel.innerHTML = '<p class="area-msg">Nothing local is running here. ' + (workflow
-      ? 'Open the <a href="' + workflow + '" target="_blank" rel="noopener">Daily ' +
-        'House Search workflow</a>, choose Run workflow, and fill in the area, the ' +
-        'radius and whether to score it with the AI.'
-      : 'Run <code>house-finder ui</code> on the machine holding the project to ' +
-        'search somewhere new.') + '</p>';
+    const button = document.getElementById('area-run');
+    const note = document.getElementById('area-msg');
+    const form = githubUrl('/issues/new');
+    if (!form) {
+      note.textContent = 'Start house-finder ui on the machine holding the ' +
+        'project to search somewhere new.';
+      button.disabled = true;
+      return;
+    }
+
+    const RADIUS_LABEL = {
+      '0': 'this area only', '1': '1 mile', '3': '3 miles', '5': '5 miles',
+      '10': '10 miles', '15': '15 miles', '20': '20 miles'
+    };
+    const MODE_LABEL = { '': 'buy and rent', buy: 'buy', rent: 'rent' };
+
+    button.textContent = 'Search this area on GitHub';
+    note.textContent = 'Nothing is running on this machine, so GitHub does the ' +
+      'work. You get a filled-in form - press Create and the search starts. ' +
+      'Your saved criteria are not changed.';
+
+    button.addEventListener('click', function () {
+      const pick = chosen();
+      if (!pick.area) { note.textContent = 'Type a postcode or place first.'; return; }
+      const query = new URLSearchParams({
+        template: 'area_search.yml',
+        title: 'Area search: ' + pick.area,
+        area: pick.area,
+        radius: RADIUS_LABEL[pick.radius] || '3 miles',
+        mode: MODE_LABEL[pick.mode] || 'buy and rent',
+        scoring: pick.use_ai ? 'as configured' : 'keyword only - no API spend'
+      });
+      window.open(form + '?' + query, '_blank', 'noopener');
+      note.textContent = 'Opened the form on GitHub for ' + pick.area +
+        '. Press Create there and the search starts.';
+    });
     return;
   }
 
