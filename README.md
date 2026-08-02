@@ -81,6 +81,10 @@ Three ways, easiest first:
    setup" issue and fill it in. No local computer needed.
 3. **Edit `config/profile.json`** directly.
 
+Once a search has run, the map itself has a **Change what I am looking for**
+link in its header. It opens the same editor, so you can adjust your criteria
+from the page you are already looking at rather than remembering a command.
+
 The things worth knowing:
 
 | Setting | What it does |
