@@ -1,0 +1,143 @@
+name: One-off Area Search
+
+# Turns a "One-off area search" issue into a single run of the pipeline over
+# that one place. It never touches config/profile.json, so your saved criteria
+# and the twice-daily schedule carry on exactly as they were - the only thing
+# that changes is where this one run looks.
+
+"on":
+  issues:
+    types: [opened, edited, reopened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Number of an 'Area search' issue"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+concurrency:
+  group: area-search
+  cancel-in-progress: false
+
+jobs:
+  start:
+    # Only someone who already has access to the repository can spend Actions
+    # minutes this way.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (startsWith(github.event.issue.title, 'Area search') &&
+       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'),
+                github.event.issue.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE_NUMBER: ${{ github.event.issue.number || github.event.inputs.issue_number }}
+
+    steps:
+      - name: Read the issue
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$ISSUE_NUMBER" ]]; then
+            echo "No issue number supplied." >&2
+            exit 1
+          fi
+          gh issue view "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --json body --jq .body > issue_body.md
+
+      - name: Read the form
+        id: form
+        shell: python
+        run: |
+          import os
+          import re
+
+          with open("issue_body.md", encoding="utf-8") as handle:
+              body = handle.read()
+
+          sections = {}
+          heading = None
+          for line in body.splitlines():
+              found = re.match(r"^###\s+(.*?)\s*$", line)
+              if found:
+                  heading = found.group(1)
+                  sections[heading] = []
+              elif heading is not None:
+                  sections[heading].append(line)
+
+          def value(label):
+              text = "\n".join(sections.get(label, [])).strip()
+              return "" if text == "_No response_" else text
+
+          # Whatever is typed here ends up as a shell argument, so hold it to
+          # the characters a real place name can contain.
+          area = value("Postcode or place").split("\n")[0]
+          area = re.sub(r"[^A-Za-z0-9 ,'-]", "", area).strip()[:60]
+          if not area:
+              raise SystemExit("No postcode or place in that form.")
+
+          radii = {
+              "this area only": "0",
+              "1 mile": "1",
+              "3 miles": "3",
+              "5 miles": "5",
+              "10 miles": "10",
+              "15 miles": "15",
+              "20 miles": "20",
+              "30 miles": "30",
+              "40 miles": "40",
+          }
+          modes = {"buy and rent": "", "buy": "buy", "rent": "rent"}
+
+          picked = {
+              "area": area,
+              "radius": radii.get(value("Within"), "3"),
+              "mode": modes.get(value("Looking to"), ""),
+              "scoring": value("Scoring") or "as configured",
+          }
+          print(picked)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              for key, setting in picked.items():
+                  out.write(f"{key}={setting}\n")
+
+      - name: Start the search
+        shell: bash
+        env:
+          AREA: ${{ steps.form.outputs.area }}
+          RADIUS: ${{ steps.form.outputs.radius }}
+          MODE: ${{ steps.form.outputs.mode }}
+          SCORING: ${{ steps.form.outputs.scoring }}
+        run: |
+          set -euo pipefail
+          gh workflow run daily_run.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$GITHUB_REF_NAME" \
+            -f area="$AREA" \
+            -f radius="$RADIUS" \
+            -f mode="$MODE" \
+            -f scoring="$SCORING"
+
+      - name: Say it has started
+        if: success()
+        shell: bash
+        env:
+          AREA: ${{ steps.form.outputs.area }}
+        run: |
+          set -euo pipefail
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body \
+            "Searching **$AREA** now, against the criteria you already had. Follow it in the Actions tab - the map updates when it finishes, usually a few minutes. Your saved criteria and the scheduled runs are unchanged."
+          gh issue close "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --reason completed
+
+      - name: Say it went wrong
+        if: failure()
+        shell: bash
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body \
+            "Could not start that search - see the One-off Area Search workflow logs for why."
