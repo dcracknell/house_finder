@@ -20,7 +20,14 @@ import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from house_finder import PROFILE_PATH, PROJECT_ROOT, SETTINGS_PATH, load_profile
+from house_finder import (
+    PROFILE_PATH,
+    PROJECT_ROOT,
+    SETTINGS_PATH,
+    load_profile,
+    load_settings,
+    resolve_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -216,6 +223,26 @@ class _Handler(BaseHTTPRequestHandler):
         threading.Thread(target=_run_in_background, args=(command,), daemon=True).start()
         self._send_json(202, {"ok": True, "command": described})
 
+    def _send_dashboard(self) -> None:
+        """Serve the generated map from this server.
+
+        Opened from here the map is same-origin with the API, so its "Search
+        another area" panel runs the search on this machine straight away: no
+        GitHub issue, no Actions minutes, nothing to wait for.
+        """
+        try:
+            settings = load_settings()
+            path = resolve_path(settings, "dashboard_html", "data/dashboard.html")
+            html = path.read_text(encoding="utf-8")
+        except Exception as exc:  # noqa: BLE001 - reported in the browser
+            self._send(
+                404,
+                f"No map yet ({exc}). Run house-finder run first.".encode(),
+                "text/plain; charset=utf-8",
+            )
+            return
+        self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
+
     def do_GET(self) -> None:  # noqa: N802 - required by BaseHTTPRequestHandler
         if self.path in ("/", "/index.html"):
             try:
@@ -224,6 +251,10 @@ class _Handler(BaseHTTPRequestHandler):
                 self._send(500, f"Cannot read editor template: {exc}".encode(), "text/plain")
                 return
             self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
+            return
+
+        if self.path in ("/map", "/map.html"):
+            self._send_dashboard()
             return
 
         if self.path == "/api/run-status":
@@ -301,6 +332,7 @@ def serve(port: int = 8765, open_browser: bool = True) -> None:
 
     print(f"\nPreferences editor: {url}")
     print(f"Editing: {PROFILE_PATH}")
+    print(f"Map, with one-off area searches: {url}map")
     print("Press Ctrl+C to stop.\n")
 
     if open_browser:
