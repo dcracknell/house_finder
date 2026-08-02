@@ -222,6 +222,52 @@ function panelHtml(mode) {
   </section>
 
   <section>
+    <h2>Area, value and data checks</h2>
+    <p class="hint">Most of these read public records fetched after the search,
+    so they only bite once enrichment is switched on in config/sources.yaml.
+    A listing with no data for a given check is always kept.</p>
+    <div class="row">
+      <div class="field"><label>Only these outcodes (one per line)</label>
+        <textarea id="${mode}-outcodes-in" placeholder="S10&#10;S11"></textarea></div>
+      <div class="field"><label>Never these outcodes</label>
+        <textarea id="${mode}-outcodes-out" placeholder="S2&#10;S4"></textarea></div>
+    </div>
+    <div class="field">
+      <label>Ignore these agents (one per line, part of the name is enough)</label>
+      <textarea id="${mode}-agents" placeholder="Example Estates"></textarea>
+    </div>
+    <div class="row">
+      <div class="field"><label>Minimum photos</label>
+        <input id="${mode}-minphotos" type="number" min="0"></div>
+      <div class="field"><label>Minimum EPC rating</label>
+        <select id="${mode}-epc">
+          <option value="">Any</option>
+          <option value="A">A</option>
+          <option value="B">B or better</option>
+          <option value="C">C or better</option>
+          <option value="D">D or better</option>
+          <option value="E">E or better</option>
+          <option value="F">F or better</option>
+        </select></div>
+      <div class="field"><label>Max crimes reported nearby</label>
+        <input id="${mode}-crime" type="number" min="0"></div>
+      <div class="field"><label>Min broadband (Mbps)</label>
+        <input id="${mode}-broadband" type="number" min="0"></div>
+    </div>
+    ${rent ? '' : `
+    <div class="row">
+      <div class="field"><label>Max price per sq ft (GBP)</label>
+        <input id="buy-max-ppsf" type="number" min="0"></div>
+      <div class="field"><label>Max % above local sold prices</label>
+        <input id="buy-max-vs-local" type="number"></div>
+    </div>`}
+    <div class="checks" style="margin-top:12px;">
+      <label><input type="checkbox" id="${mode}-no-flood">
+      Rule out flood warnings nearby</label>
+    </div>
+  </section>
+
+  <section>
     <h2>Rule out</h2>
     ${rent ? `
     <div class="checks">
@@ -337,6 +383,19 @@ function fillPanel(mode) {
   el(`${mode}-size-min`).value = c.min_size_sqft ?? '';
   el(`${mode}-size-max`).value = c.max_size_sqft ?? '';
   el(`${mode}-includes`).value = (c.keyword_includes || []).join('\n');
+  el(`${mode}-outcodes-in`).value = (c.outcode_includes || []).join('\n');
+  el(`${mode}-outcodes-out`).value = (ex.outcode_excludes || []).join('\n');
+  el(`${mode}-agents`).value = (ex.agent_excludes || []).join('\n');
+  el(`${mode}-minphotos`).value = c.min_image_count ?? '';
+  el(`${mode}-epc`).value = c.min_epc_rating || '';
+  el(`${mode}-crime`).value = c.max_crime_incidents ?? '';
+  el(`${mode}-broadband`).value = c.min_broadband_mbps ?? '';
+  el(`${mode}-no-flood`).checked = !!ex.no_flood_risk;
+
+  if (!rent) {
+    el('buy-max-ppsf').value = c.max_price_per_sqft ?? '';
+    el('buy-max-vs-local').value = c.max_price_vs_local_pct ?? '';
+  }
 
   // Chain-free means nothing on a rental, so it is hidden there.
   const feats = rent ? FEATURES.filter(([v]) => v !== 'chain_free') : FEATURES;
@@ -402,6 +461,16 @@ function collectPanel(mode) {
   c.min_size_sqft = num(`${mode}-size-min`);
   c.max_size_sqft = num(`${mode}-size-max`);
   c.keyword_includes = lines(`${mode}-includes`);
+  c.outcode_includes = lines(`${mode}-outcodes-in`);
+  c.min_image_count = num(`${mode}-minphotos`);
+  c.min_epc_rating = el(`${mode}-epc`).value;
+  c.max_crime_incidents = num(`${mode}-crime`);
+  c.min_broadband_mbps = num(`${mode}-broadband`);
+
+  if (!rent) {
+    c.max_price_per_sqft = num('buy-max-ppsf');
+    c.max_price_vs_local_pct = num('buy-max-vs-local');
+  }
 
   c.must_have_features = Array.from(
     document.querySelectorAll(`#${mode}-features .feat:checked`)
@@ -418,6 +487,9 @@ function collectPanel(mode) {
 
   const ex = c.exclusions = c.exclusions || {};
   ex.keyword_excludes = lines(`${mode}-keywords`);
+  ex.outcode_excludes = lines(`${mode}-outcodes-out`);
+  ex.agent_excludes = lines(`${mode}-agents`);
+  ex.no_flood_risk = el(`${mode}-no-flood`).checked;
 
   if (rent) {
     ex.no_house_share = el('rent-no-share').checked;
