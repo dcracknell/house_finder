@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 import sqlite3
+import subprocess
 from datetime import date
 from pathlib import Path
 
@@ -28,6 +31,35 @@ def dashboard_path(settings: dict) -> Path:
     configured = (settings.get("paths") or {}).get("dashboard_html", "data/dashboard.html")
     path = Path(configured)
     return path if path.is_absolute() else PROJECT_ROOT / path
+
+
+def _repo_slug() -> str:
+    """The "owner/repo" this checkout came from, so the map can link back to GitHub.
+
+    The dashboard gets opened from GitHub Pages, from htmlpreview, from a phone
+    and straight off disk, so the page itself cannot work this out from its own
+    address - it guesses wrong and the header links land on a 404. Bake the
+    answer in instead: Actions sets GITHUB_REPOSITORY, and locally the origin
+    remote knows. An empty string is fine and leaves the links pointing at the
+    local `house-finder ui` editor.
+    """
+    slug = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if slug:
+        return slug
+
+    try:
+        remote = subprocess.run(
+            ["git", "-C", str(PROJECT_ROOT), "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+    match = re.search(r"github\.com[:/]+([^/]+/[^/]+?)(?:\.git)?/?$", remote)
+    return match.group(1) if match else ""
 
 
 def _row_to_property(row: sqlite3.Row) -> dict:
@@ -118,6 +150,7 @@ def generate(
         unmapped=unmapped,
         generated_at=date.today().isoformat(),
         profile_name=(profile or {}).get("name") or "",
+        repo_slug=_repo_slug(),
     )
 
     target.write_text(html, encoding="utf-8")
