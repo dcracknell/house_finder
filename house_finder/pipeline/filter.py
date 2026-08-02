@@ -44,12 +44,21 @@ _MUST_HAVE_PATTERNS = {
     "chain_free": re.compile(r"\b(no (?:onward )?chain|chain[\s-]?free)\b", re.I),
 }
 
+# EPC bands as their lowest efficiency score, so "at least a C" can be judged
+# from either the letter or the 1-100 score, whichever the source supplied.
+_EPC_BANDS = {"A": 92, "B": 81, "C": 69, "D": 55, "E": 39, "F": 21, "G": 1}
+
 # "999 year lease", "left on the lease: 87 years", "87 years remaining"
 _LEASE_YEARS = (
     re.compile(r"(\d{2,4})\s*(?:\+)?\s*years?\s+(?:remaining|left|unexpired)", re.I),
     re.compile(r"lease[^.]{0,40}?(\d{2,4})\s*years", re.I),
     re.compile(r"(\d{2,4})\s*year\s+lease", re.I),
 )
+
+
+def _clean_outcodes(values) -> set[str]:
+    """Normalise user-typed outcodes ("s11", "S6 ") into a comparable set."""
+    return {v.strip().upper().replace(" ", "") for v in (values or []) if v and v.strip()}
 
 
 def _listing_text(record) -> str:
@@ -137,6 +146,13 @@ def apply_filters(
     min_lease = exclusions.get("no_leasehold_under_years")
     size_min = criteria.get("min_size_sqft")
     size_max = criteria.get("max_size_sqft")
+    min_images = criteria.get("min_image_count")
+    max_price_per_sqft = criteria.get("max_price_per_sqft")
+    outcode_includes = _clean_outcodes(criteria.get("outcode_includes"))
+    outcode_excludes = _clean_outcodes(exclusions.get("outcode_excludes"))
+    agent_excludes = [
+        a.strip().lower() for a in (exclusions.get("agent_excludes") or []) if a and a.strip()
+    ]
     must_have_features = [
         f for f in (criteria.get("must_have_features") or []) if f in _MUST_HAVE_PATTERNS
     ]
@@ -204,6 +220,21 @@ def apply_filters(
         if allowed_tenures and record.tenure and record.tenure != "unknown":
             if record.tenure not in allowed_tenures:
                 drops["wrong_tenure"] += 1
+                continue
+
+        # Needs both numbers, and most listings never state a floor area.
+        if max_price_per_sqft and record.price and record.floor_area_sqft:
+            if record.price / record.floor_area_sqft > max_price_per_sqft:
+                drops["too_expensive_per_sqft"] += 1
+                continue
+
+        if record.outcode:
+            outcode = record.outcode.strip().upper().replace(" ", "")
+            if outcode_includes and outcode not in outcode_includes:
+                drops["outcode_not_wanted"] += 1
+                continue
+            if outcode in outcode_excludes:
+                drops["excluded_outcode"] += 1
                 continue
 
         if allowed_types and record.property_type not in allowed_types:
@@ -276,6 +307,18 @@ def apply_filters(
             drops[f"missing_{missing_feature}"] += 1
             continue
 
+        if agent_excludes and record.agent_name:
+            agent = record.agent_name.lower()
+            if any(a in agent for a in agent_excludes):
+                drops["excluded_agent"] += 1
+                continue
+
+        # image_count is 0 both for "no photos" and "this source does not
+        # report a count", so this one is off unless explicitly asked for.
+        if min_images and record.image_count < min_images:
+            drops["too_few_photos"] += 1
+            continue
+
         if record.property_id in cooldown:
             drops["previously_rejected"] += 1
             continue
@@ -300,6 +343,73 @@ def apply_filters(
     if drops:
         logger.info(
             "filter: dropped %d/%d (%s)",
+            sum(drops.values()),
+            len(records),
+            ", ".join(f"{reason}: {n}" for reason, n in drops.most_common()),
+        )
+    return kept
+
+
+def apply_enrichment_filters(records: list, criteria: dict) -> list:
+    """Second filter pass, run after enrichment has attached public-record data.
+
+    Separate from apply_filters because enrichment happens later in the pipeline:
+    at first-filter time none of these fields exist yet. Enrichment is also
+    capped per run, so most records reach here with nothing attached - the usual
+    rule applies and anything unknown is kept.
+    """
+    exclusions = criteria.get("exclusions") or {}
+    min_epc = _EPC_BANDS.get(str(criteria.get("min_epc_rating") or "").strip().upper())
+    max_crime = criteria.get("max_crime_incidents")
+    min_broadband = criteria.get("min_broadband_mbps")
+    max_over_local = criteria.get("max_price_vs_local_pct")
+    no_flood = exclusions.get("no_flood_risk")
+
+    if not (
+        min_epc
+        or max_crime is not None
+        or min_broadband
+        or max_over_local is not None
+        or no_flood
+    ):
+        return records
+
+    kept = []
+    drops: Counter[str] = Counter()
+
+    for record in records:
+        # Prefer the numeric score; fall back to the letter the listing quoted.
+        score = record.epc_current
+        if score is None and record.epc_rating:
+            score = _EPC_BANDS.get(record.epc_rating.strip().upper()[:1])
+        if min_epc and score is not None and score < min_epc:
+            drops["epc_too_low"] += 1
+            continue
+
+        if max_crime is not None and record.crime_incidents_nearby is not None:
+            if record.crime_incidents_nearby > max_crime:
+                drops["too_much_crime"] += 1
+                continue
+
+        if min_broadband and record.broadband_max_mbps is not None:
+            if record.broadband_max_mbps < min_broadband:
+                drops["broadband_too_slow"] += 1
+                continue
+
+        if max_over_local is not None and record.price_vs_local_pct is not None:
+            if record.price_vs_local_pct > max_over_local:
+                drops["over_local_market"] += 1
+                continue
+
+        if no_flood and record.flood_warnings_nearby:
+            drops["flood_risk"] += 1
+            continue
+
+        kept.append(record)
+
+    if drops:
+        logger.info(
+            "enrichment filter: dropped %d/%d (%s)",
             sum(drops.values()),
             len(records),
             ", ".join(f"{reason}: {n}" for reason, n in drops.most_common()),
