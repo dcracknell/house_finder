@@ -19,6 +19,23 @@ name: Daily House Search
         type: choice
         options: ["", "buy", "rent"]
         default: ""
+      area:
+        description: "One-off: search this postcode or place instead of your profile"
+        required: false
+        type: string
+        default: ""
+      radius:
+        description: "Radius in miles for the one-off area"
+        required: false
+        type: choice
+        options: ["", "0", "1", "3", "5", "10", "15", "20", "30", "40"]
+        default: ""
+      scoring:
+        description: "Scoring for this run"
+        required: false
+        type: choice
+        options: ["as configured", "keyword only - no API spend"]
+        default: "as configured"
 
 permissions:
   contents: write
@@ -34,6 +51,9 @@ jobs:
     env:
       DRY_RUN_INPUT: ${{ github.event.inputs.dry_run || 'false' }}
       MODE_INPUT: ${{ github.event.inputs.mode || '' }}
+      AREA_INPUT: ${{ github.event.inputs.area || '' }}
+      RADIUS_INPUT: ${{ github.event.inputs.radius || '' }}
+      SCORING_INPUT: ${{ github.event.inputs.scoring || '' }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       EPC_API_EMAIL: ${{ secrets.EPC_API_EMAIL }}
       EPC_API_KEY: ${{ secrets.EPC_API_KEY }}
@@ -85,6 +105,15 @@ jobs:
           fi
           if [[ -n "$MODE_INPUT" ]]; then
             cmd+=(--mode "$MODE_INPUT")
+          fi
+          if [[ -n "$AREA_INPUT" ]]; then
+            cmd+=(--area "$AREA_INPUT")
+          fi
+          if [[ -n "$RADIUS_INPUT" ]]; then
+            cmd+=(--radius "$RADIUS_INPUT")
+          fi
+          if [[ "$SCORING_INPUT" == keyword* ]]; then
+            cmd+=(--no-rank)
           fi
 
           "${cmd[@]}" 2>&1 | tee data/runs.log
