@@ -18,7 +18,8 @@ with setup instructions and direct links to your latest map and spreadsheet.
 ## What it does
 
 1. **Searches** Rightmove for both properties to buy and to rent, using your
-   criteria as real search filters (price, bedrooms, type, area, radius).
+   criteria as real search filters (price, bedrooms, type, area, radius,
+   floor area, tenure, and whether a garden or parking is required).
 2. **Filters out** anything that breaks your rules — over budget, too few
    bedrooms, retirement homes, shared ownership, short leases, auction lots,
    or listings containing words you have banned.
@@ -94,7 +95,18 @@ The things worth knowing:
 | `must_haves` | Weigh heavily in the score. Plain words: `garden`, `garage`. |
 | `nice_to_haves` | A bonus, not a requirement. |
 | `exclusions` | Hard rules. Anything matching is discarded before scoring. |
+| `bedrooms_max` / `bathrooms_max` | Upper limits, if a place can be too big. |
+| `min_size_sqft` / `max_size_sqft` | Floor area. Only applied to listings that state one. |
+| `tenure_types` | `freehold`, `leasehold`, `share_of_freehold`. Blank allows any. |
+| `must_have_features` | `garden`, `parking`, `chain_free`. These **rule a property out**. |
+| `keyword_includes` | A listing must mention at least one of these to survive. |
 | `preferences_freetext` | **The important one.** Describe in your own words what you want — this is what the AI reads. |
+
+`must_haves` and `must_have_features` are not the same thing. `must_haves` is
+a wish-list the scorer weighs heavily; `must_have_features` is a hard filter
+that discards anything without it. Garden and parking are also sent to
+Rightmove as search filters, so those two are applied before anything is even
+downloaded.
 
 `preferences_freetext` is where the real value is. A checkbox cannot express
 "not on a main road, room to extend, happy to redo a kitchen but not a roof".
