@@ -22,7 +22,8 @@ with setup instructions and direct links to your latest map and spreadsheet.
    floor area, tenure, and whether a garden or parking is required).
 2. **Filters out** anything that breaks your rules — over budget, too few
    bedrooms, retirement homes, shared ownership, short leases, auction lots,
-   or listings containing words you have banned.
+   the wrong outcode, a blocked agent, or listings containing words you have
+   banned.
 3. **Scores what is left, 0-10**, against your must-haves, nice-to-haves and a
    plain-English description of what you are after, with a one-line reason.
 4. **Adds data the listing does not show you**, from free public records:
@@ -35,6 +36,11 @@ with setup instructions and direct links to your latest map and spreadsheet.
    your notes are never lost.
 6. **Gives you two views**: `houses.xlsx` to track viewings and offers, and
    `dashboard.html`, an interactive map you can filter and click through.
+
+Steps 2 and 4 are two halves of the same job. The first filter runs on what the
+listing itself says; the second runs after the public-record lookups, so limits
+on EPC, crime, broadband, flood warnings or price against local sales are
+applied before any scoring is paid for.
 
 ---
 
@@ -100,6 +106,13 @@ The things worth knowing:
 | `tenure_types` | `freehold`, `leasehold`, `share_of_freehold`. Blank allows any. |
 | `must_have_features` | `garden`, `parking`, `chain_free`. These **rule a property out**. |
 | `keyword_includes` | A listing must mention at least one of these to survive. |
+| `outcode_includes` | Only these outcodes, e.g. `S10`. Blank allows the whole search area. |
+| `min_image_count` | Skip listings with fewer photos than this. Off unless you set it. |
+| `max_price_per_sqft` | Only applied to listings that state a floor area. |
+| `min_epc_rating` | `A` to `G`. Judged on the EPC score, or the letter if that is all there is. |
+| `max_crime_incidents` | Cap on reported incidents nearby. |
+| `min_broadband_mbps` | Minimum available speed. |
+| `max_price_vs_local_pct` | How far above nearby sold prices you will go, as a percentage. |
 | `preferences_freetext` | **The important one.** Describe in your own words what you want — this is what the AI reads. |
 
 `must_haves` and `must_have_features` are not the same thing. `must_haves` is
@@ -107,6 +120,19 @@ a wish-list the scorer weighs heavily; `must_have_features` is a hard filter
 that discards anything without it. Garden and parking are also sent to
 Rightmove as search filters, so those two are applied before anything is even
 downloaded.
+
+A few of those are checked **after** the search rather than during it, because
+the data behind them does not exist until the free public-record lookups have
+run: `min_epc_rating`, `max_crime_incidents`, `min_broadband_mbps`,
+`max_price_vs_local_pct` and `no_flood_risk`. They need the matching source
+switched on in `config/sources.yaml`, and **a property with no data for a given
+check is always kept** — enrichment is capped per run, so most listings reach
+that point with nothing attached and a blank is never treated as a bad answer.
+
+Three of the new settings live inside `exclusions` alongside `keyword_excludes`,
+because they rule things out rather than describe what you want:
+`outcode_excludes`, `agent_excludes` (ignore an agent by name) and
+`no_flood_risk`.
 
 `preferences_freetext` is where the real value is. A checkbox cannot express
 "not on a main road, room to extend, happy to redo a kitchen but not a roof".
@@ -326,6 +352,8 @@ pipeline/normalise.py        clean up, recover postcodes from coordinates
 pipeline/filter.py           discard anything breaking your hard rules
   ↓
 enrichment/                  sold prices, crime, flood, EPC, broadband
+  ↓
+pipeline/filter.py           second pass, now that public-record data exists
   ↓
 pipeline/rank.py             free keyword pass, then Claude for the judgement
   ↓
