@@ -150,15 +150,17 @@ or sync it to your phone.
 - Anything that could not be placed on the map is listed underneath rather than
   quietly dropped.
 - "Change what I am looking for" in the header opens the preferences editor, so
-  you can adjust your criteria from the page you are already looking at. Locally
-  that is the `house-finder ui` server; on GitHub Pages it opens the setup issue
-  form instead.
+  you can adjust your criteria from the page you are already looking at. On the
+  machine running `house-finder ui` that is the local editor; anywhere else -
+  GitHub Pages, htmlpreview, your phone - it opens the setup issue form instead.
 - "Search another area" is a one-off look somewhere that is not in your profile.
-  Give it a postcode, a radius, buy or rent, and whether to use AI scoring, and it
-  runs a single search of that area. Your saved criteria are untouched, so the
-  next scheduled run goes back to normal. Locally it needs `house-finder ui`
-  running to do the work; on GitHub Pages it sends you to the workflow, which
-  takes the same three inputs.
+  Type a postcode, pick a radius, buy or rent, and whether to score it with the
+  AI, and it searches that place against everything you have already set -
+  budget, bedrooms, must-haves, exclusions and all. Your saved criteria are
+  untouched, so the next scheduled run goes back to your usual areas. On the
+  machine running `house-finder ui` it starts there and then. Anywhere else it
+  fills in the "One-off area search" issue form for you; press Create and GitHub
+  runs it, and the map picks up whatever it found.
 
 ---
 
@@ -266,6 +268,7 @@ That writes `config/profile.json` and kicks off the first search.
 |---|---|---|
 | `daily_run.yml` | 07:00 and 16:00 UTC | Searches, scores, saves results to the `house-search-data` branch, uploads artifacts |
 | `configure_search.yml` | You open a setup issue | Turns the form into your criteria and starts a search |
+| `area_search.yml` | You open a one-off area search issue | Searches that one place with your existing criteria, without changing them |
 | `pages.yml` | You push to `docs/` | Publishes the website |
 | `test.yml` | Every push | Runs the tests and linter |
 
