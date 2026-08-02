@@ -51,6 +51,10 @@
   .area-fields button[disabled] { opacity: .5; cursor: default; }
   .area-msg { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
   .area-msg a { color: var(--accent); }
+  .area-msg .linkish {
+    font: inherit; padding: 0; border: 0; background: none;
+    color: var(--accent); text-decoration: underline; cursor: pointer;
+  }
   .layout { flex: 1; display: flex; min-height: 0; }
   #map { flex: 1; min-height: 320px; }
   aside {
@@ -324,6 +328,41 @@ function githubUrl(path) {
       note.textContent = 'Opened the form on GitHub for ' + pick.area +
         '. Press Create there and the search starts.';
     });
+
+    // Two routes that file nothing at all: the Actions tab runs the same
+    // search from a form, and the command runs it on your own machine.
+    const extras = document.createElement('p');
+    extras.className = 'area-msg';
+    const viaActions = document.createElement('a');
+    viaActions.href = githubUrl('/actions/workflows/daily_run.yml');
+    viaActions.target = '_blank';
+    viaActions.rel = 'noopener';
+    viaActions.textContent = 'run it from the Actions tab';
+    viaActions.title = 'Press "Run workflow" there and type the place into the ' +
+      'one-off box. No issue is created.';
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.className = 'linkish';
+    copy.textContent = 'copy the command';
+    copy.addEventListener('click', function () {
+      const pick = chosen();
+      if (!pick.area) { note.textContent = 'Type a postcode or place first.'; return; }
+      let text = 'house-finder run --area "' + pick.area + '"';
+      if (pick.radius) text += ' --radius ' + pick.radius;
+      if (pick.mode) text += ' --mode ' + pick.mode;
+      if (!pick.use_ai) text += ' --no-rank';
+      navigator.clipboard.writeText(text).then(function () {
+        note.textContent = 'Copied. Paste it into a terminal in the project folder.';
+      }, function () {
+        note.textContent = text;
+      });
+    });
+    extras.appendChild(document.createTextNode('Would rather not file one? You can '));
+    extras.appendChild(viaActions);
+    extras.appendChild(document.createTextNode(', or '));
+    extras.appendChild(copy);
+    extras.appendChild(document.createTextNode(' and run it yourself.'));
+    panel.appendChild(extras);
     return;
   }
 
