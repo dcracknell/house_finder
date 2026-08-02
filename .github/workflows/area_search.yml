@@ -82,24 +82,30 @@ jobs:
           if not area:
               raise SystemExit("No postcode or place in that form.")
 
-          radii = {
-              "this area only": "0",
-              "1 mile": "1",
-              "3 miles": "3",
-              "5 miles": "5",
-              "10 miles": "10",
-              "15 miles": "15",
-              "20 miles": "20",
-              "30 miles": "30",
-              "40 miles": "40",
-          }
-          modes = {"buy and rent": "", "buy": "buy", "rent": "rent"}
+          # Rightmove only offers these, so snap whatever was typed to the
+          # nearest one rather than refusing it.
+          allowed = [0, 1, 3, 5, 10, 15, 20, 30, 40]
+          typed = re.search(r"\d+", value("Within, in miles"))
+          wanted = int(typed.group(0)) if typed else 3
+          radius = str(min(allowed, key=lambda option: abs(option - wanted)))
+
+          # Blank means both, which is what the pipeline does by default.
+          looking = value("Looking to").lower()
+          mode = ""
+          if "rent" in looking and "buy" not in looking:
+              mode = "rent"
+          elif "buy" in looking and "rent" not in looking:
+              mode = "buy"
+
+          asked = value("Scoring").lower()
+          wants_ai = "ai" in asked or "config" in asked
+          scoring = "as configured" if wants_ai else "keyword only - no API spend"
 
           picked = {
               "area": area,
-              "radius": radii.get(value("Within"), "3"),
-              "mode": modes.get(value("Looking to"), ""),
-              "scoring": value("Scoring") or "as configured",
+              "radius": radius,
+              "mode": mode,
+              "scoring": scoring,
           }
           print(picked)
 
