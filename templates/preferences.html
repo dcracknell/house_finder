@@ -129,6 +129,17 @@ const TYPES = [
   ['flat','Flat / apartment'], ['bungalow','Bungalow'], ['land','Land / plot']
 ];
 
+const FEATURES = [
+  ['garden', 'Must have a garden or outdoor space'],
+  ['parking', 'Must have parking, a garage or a driveway'],
+  ['chain_free', 'Must be chain free']
+];
+
+const TENURES = [
+  ['freehold', 'Freehold'], ['leasehold', 'Leasehold'],
+  ['share_of_freehold', 'Share of freehold']
+];
+
 function el(id) { return document.getElementById(id); }
 
 function panelHtml(mode) {
@@ -144,6 +155,7 @@ function panelHtml(mode) {
 
   <section>
     <h2>${priceLabel} and size</h2>
+    <p class="hint">Size filters only apply to listings that state a floor area.</p>
     <div class="row">
       <div class="field"><label>Minimum</label>
         <input id="${mode}-price-min" type="number" step="1000" min="0"></div>
@@ -153,6 +165,14 @@ function panelHtml(mode) {
         <input id="${mode}-beds-min" type="number" min="0" max="10"></div>
       <div class="field"><label>Min bathrooms</label>
         <input id="${mode}-baths-min" type="number" min="0" max="10"></div>
+      <div class="field"><label>Max bedrooms</label>
+        <input id="${mode}-beds-max" type="number" min="0" max="10"></div>
+      <div class="field"><label>Max bathrooms</label>
+        <input id="${mode}-baths-max" type="number" min="0" max="10"></div>
+      <div class="field"><label>Min size (sq ft)</label>
+        <input id="${mode}-size-min" type="number" min="0" step="50"></div>
+      <div class="field"><label>Max size (sq ft)</label>
+        <input id="${mode}-size-max" type="number" min="0" step="50"></div>
     </div>
     <div class="field">
       <label>Property types (leave all unticked to allow any)</label>
@@ -171,6 +191,34 @@ function panelHtml(mode) {
       <div class="field"><label>Nice-to-haves</label>
         <textarea id="${mode}-nice"></textarea></div>
     </div>
+  </section>
+
+  <section>
+    <h2>Deal-breakers</h2>
+    <p class="hint">Unlike the wish-list above, these rule a property out.
+    Garden and parking are passed straight to Rightmove, so they are applied
+    before anything is downloaded.</p>
+    <div class="checks" id="${mode}-features"></div>
+    <div class="field" style="margin-top:12px;">
+      <label>Words a listing must contain (one per line, any one will do)</label>
+      <textarea id="${mode}-includes" placeholder="no chain&#10;south facing"></textarea>
+    </div>
+    ${rent ? `
+    <div class="row">
+      <div class="field"><label>Furnishing</label>
+        <select id="rent-furnished">
+          <option value="any">Any</option>
+          <option value="furnished">Furnished</option>
+          <option value="unfurnished">Unfurnished</option>
+          <option value="part_furnished">Part furnished</option>
+        </select></div>
+      <div class="field"><label>Minimum tenancy (months)</label>
+        <input id="rent-tenancy" type="number" min="0"></div>
+    </div>` : `
+    <div class="field">
+      <label>Tenure (leave all unticked to allow any)</label>
+      <div class="checks" id="buy-tenures"></div>
+    </div>`}
   </section>
 
   <section>
@@ -284,6 +332,29 @@ function fillPanel(mode) {
     el('buy-no-sstc').checked = !c.include_sold_stc;
     el('buy-lease').value = ex.no_leasehold_under_years ?? '';
   }
+  el(`${mode}-beds-max`).value = c.bedrooms_max ?? '';
+  el(`${mode}-baths-max`).value = c.bathrooms_max ?? '';
+  el(`${mode}-size-min`).value = c.min_size_sqft ?? '';
+  el(`${mode}-size-max`).value = c.max_size_sqft ?? '';
+  el(`${mode}-includes`).value = (c.keyword_includes || []).join('\n');
+
+  // Chain-free means nothing on a rental, so it is hidden there.
+  const feats = rent ? FEATURES.filter(([v]) => v !== 'chain_free') : FEATURES;
+  el(`${mode}-features`).innerHTML = feats.map(([value, label]) =>
+    `<label><input type="checkbox" class="feat" value="${value}"
+      ${(c.must_have_features || []).includes(value) ? 'checked' : ''}> ${label}</label>`
+  ).join('');
+
+  if (rent) {
+    el('rent-furnished').value = c.furnished || 'any';
+    el('rent-tenancy').value = c.min_tenancy_months ?? '';
+  } else {
+    el('buy-tenures').innerHTML = TENURES.map(([value, label]) =>
+      `<label><input type="checkbox" class="tenure" value="${value}"
+        ${(c.tenure_types || []).includes(value) ? 'checked' : ''}> ${label}</label>`
+    ).join('');
+  }
+
   renderAreas(mode);
 }
 
@@ -325,6 +396,25 @@ function collectPanel(mode) {
   c.property_types = Array.from(
     document.querySelectorAll(`#${mode}-types .ptype:checked`)
   ).map(i => i.value);
+
+  c.bedrooms_max = num(`${mode}-beds-max`);
+  c.bathrooms_max = num(`${mode}-baths-max`);
+  c.min_size_sqft = num(`${mode}-size-min`);
+  c.max_size_sqft = num(`${mode}-size-max`);
+  c.keyword_includes = lines(`${mode}-includes`);
+
+  c.must_have_features = Array.from(
+    document.querySelectorAll(`#${mode}-features .feat:checked`)
+  ).map(i => i.value);
+
+  if (rent) {
+    c.furnished = el('rent-furnished').value;
+    c.min_tenancy_months = num('rent-tenancy');
+  } else {
+    c.tenure_types = Array.from(
+      document.querySelectorAll('#buy-tenures .tenure:checked')
+    ).map(i => i.value);
+  }
 
   const ex = c.exclusions = c.exclusions || {};
   ex.keyword_excludes = lines(`${mode}-keywords`);
