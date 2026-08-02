@@ -115,6 +115,12 @@ or sync it to your phone.
   you can adjust your criteria from the page you are already looking at. Locally
   that is the `house-finder ui` server; on GitHub Pages it opens the setup issue
   form instead.
+- "Search another area" is a one-off look somewhere that is not in your profile.
+  Give it a postcode, a radius, buy or rent, and whether to use AI scoring, and it
+  runs a single search of that area. Your saved criteria are untouched, so the
+  next scheduled run goes back to normal. Locally it needs `house-finder ui`
+  running to do the work; on GitHub Pages it sends you to the workflow, which
+  takes the same three inputs.
 
 ---
 
@@ -139,6 +145,8 @@ house-finder run                  # the full pipeline
 house-finder run --dry-run        # fetch and score, save nothing
 house-finder run --mode rent      # only one mode
 house-finder run --no-rank        # no AI scoring, no spend
+house-finder run --area "S10" --radius 5   # a one-off look somewhere else
+house-finder run --area "S10" --no-rank    # the same, without spending anything
 house-finder ui                   # edit your criteria in a browser
 house-finder map-view --open      # rebuild and open the map
 house-finder export               # rebuild spreadsheet and map from the database
@@ -222,6 +230,10 @@ That writes `config/profile.json` and kicks off the first search.
 | `configure_search.yml` | You open a setup issue | Turns the form into your criteria and starts a search |
 | `pages.yml` | You push to `docs/` | Publishes the website |
 | `test.yml` | Every push | Runs the tests and linter |
+
+**Run workflow** on `daily_run.yml` also takes a one-off `area`, a `radius` and a
+`scoring` choice, so you can look at somewhere new, with or without AI scoring,
+without touching your saved criteria or waiting for the schedule.
 
 ---
 
