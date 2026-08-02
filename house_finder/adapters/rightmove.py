@@ -108,6 +108,12 @@ _TENURE_TO_QUERY = {
 }
 
 
+# Rightmove accepts `keywords` and `tags` and echoes both back in its own
+# searchParameters, but neither changes the result count - they only feed the
+# "keywordCount" badge on the results page. Keyword matching therefore has to
+# stay local, in pipeline/filter.py. Sending them here would be a no-op.
+
+
 class RightmoveAdapter(Adapter):
     name = "rightmove"
 
@@ -274,6 +280,12 @@ class RightmoveAdapter(Adapter):
                 params["furnishTypes"] = (
                     "partFurnished" if furnished.startswith("part") else furnished
                 )
+            # Six months is the line Rightmove itself draws between short and
+            # long lets, so a minimum tenancy at or above it can be applied
+            # server-side instead of downloading short lets and dropping them.
+            tenancy = criteria.get("min_tenancy_months")
+            if tenancy and int(tenancy) >= 6:
+                params["letType"] = "longTerm"
             if not criteria.get("include_let_agreed", False):
                 params["includeLetAgreed"] = "false"
         else:
