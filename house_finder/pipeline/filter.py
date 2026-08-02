@@ -132,6 +132,7 @@ def apply_filters(
     bathrooms_min = criteria.get("bathrooms_min")
     bathrooms_max = criteria.get("bathrooms_max")
     allowed_types = set(criteria.get("property_types") or [])
+    allowed_tenures = set(criteria.get("tenure_types") or [])
     max_days = criteria.get("max_days_since_listed")
     min_lease = exclusions.get("no_leasehold_under_years")
     size_min = criteria.get("min_size_sqft")
@@ -196,6 +197,13 @@ def apply_filters(
                 continue
             if size_max and record.floor_area_sqft > size_max:
                 drops["too_large"] += 1
+                continue
+
+        # Rightmove applies tenure server-side, so this only bites on sources
+        # that cannot. Unknown tenure is kept: most listings never state it.
+        if allowed_tenures and record.tenure and record.tenure != "unknown":
+            if record.tenure not in allowed_tenures:
+                drops["wrong_tenure"] += 1
                 continue
 
         if allowed_types and record.property_type not in allowed_types:
