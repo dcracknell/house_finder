@@ -77,11 +77,34 @@ _TYPE_TO_QUERY = {
     "land": "land",
 }
 
-# Rightmove dontShow tokens.
-_DONTSHOW = {
+# Rightmove dontShow tokens. The two channels have different vocabularies;
+# an unknown token is ignored rather than rejected, but keeping them apart
+# documents which exclusion actually reaches the portal.
+_DONTSHOW_SALE = {
     "no_retirement_homes": "retirement",
     "no_shared_ownership": "sharedOwnership",
     "no_new_build": "newHome",
+    "no_auction": "auction",
+}
+
+_DONTSHOW_RENT = {
+    "no_retirement_homes": "retirement",
+    "no_house_share": "houseShare",
+    "no_student_only": "student",
+}
+
+# Our must-have names -> Rightmove mustHave tokens. Only these two have a
+# portal equivalent; the rest stay local text matches in pipeline/filter.py.
+_MUST_HAVE_TO_QUERY = {
+    "garden": "garden",
+    "parking": "parking",
+}
+
+# Rightmove wants tenure in upper snake case.
+_TENURE_TO_QUERY = {
+    "freehold": "FREEHOLD",
+    "leasehold": "LEASEHOLD",
+    "share_of_freehold": "SHARE_OF_FREEHOLD",
 }
 
 
@@ -208,6 +231,29 @@ class RightmoveAdapter(Adapter):
         if types:
             params["propertyTypes"] = ",".join(sorted(set(types)))
 
+        # Floor area, in square feet - Rightmove defaults areaSizeUnit to sqft,
+        # which is the unit PropertyRecord stores, so no conversion is needed.
+        if criteria.get("min_size_sqft"):
+            params["minSize"] = int(criteria["min_size_sqft"])
+        if criteria.get("max_size_sqft"):
+            params["maxSize"] = int(criteria["max_size_sqft"])
+
+        must_have = [
+            _MUST_HAVE_TO_QUERY[f]
+            for f in (criteria.get("must_have_features") or [])
+            if f in _MUST_HAVE_TO_QUERY
+        ]
+        if must_have:
+            params["mustHave"] = ",".join(sorted(set(must_have)))
+
+        tenures = [
+            _TENURE_TO_QUERY[t]
+            for t in (criteria.get("tenure_types") or [])
+            if t in _TENURE_TO_QUERY
+        ]
+        if tenures:
+            params["tenureTypes"] = ",".join(sorted(set(tenures)))
+
         max_days = criteria.get("max_days_since_listed")
         if max_days:
             # Rightmove only accepts these buckets; round up to the nearest.
@@ -217,7 +263,8 @@ class RightmoveAdapter(Adapter):
                     break
 
         exclusions = criteria.get("exclusions") or {}
-        dont_show = [token for key, token in _DONTSHOW.items() if exclusions.get(key)]
+        tokens = _DONTSHOW_RENT if listing_type == "rent" else _DONTSHOW_SALE
+        dont_show = [token for key, token in tokens.items() if exclusions.get(key)]
         if dont_show:
             params["dontShow"] = ",".join(dont_show)
 
