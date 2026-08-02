@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from house_finder.pipeline.filter import apply_filters, extract_lease_years
+from house_finder.pipeline.filter import (
+    apply_enrichment_filters,
+    apply_filters,
+    extract_lease_years,
+)
 
 BASE = {
     "price": {"min": 100000, "max": 300000},
@@ -172,3 +176,121 @@ def test_agent_pages_are_filtered_by_radius(conn, record_factory):
     criteria = {**BASE, "search_areas": [{"radius_miles": 1}]}
     far_away = record_factory(source="agent_page:someone", lat=51.5, lon=-0.12)
     assert apply_filters([far_away], criteria, conn, home_coords=(53.38, -1.47)) == []
+
+
+# --- Listing metadata filters ---
+
+
+def test_drops_outcode_not_on_the_include_list(conn, record_factory):
+    criteria = {**BASE, "outcode_includes": ["S11", "S17"]}
+    assert apply_filters([record_factory()], criteria, conn) == []
+
+
+def test_keeps_outcode_on_the_include_list(conn, record_factory):
+    """User-typed outcodes are messy, so case and spacing are normalised."""
+    criteria = {**BASE, "outcode_includes": ["s10 ", "S17"]}
+    assert len(apply_filters([record_factory()], criteria, conn)) == 1
+
+
+def test_drops_excluded_outcode(conn, record_factory):
+    criteria = {**BASE, "exclusions": {"outcode_excludes": ["S10"]}}
+    assert apply_filters([record_factory()], criteria, conn) == []
+
+
+def test_keeps_property_with_unknown_outcode(conn, record_factory):
+    criteria = {**BASE, "outcode_includes": ["S11"]}
+    assert len(apply_filters([record_factory(outcode=None)], criteria, conn)) == 1
+
+
+def test_drops_blocked_agent(conn, record_factory):
+    criteria = {**BASE, "exclusions": {"agent_excludes": ["example estates"]}}
+    record = record_factory(agent_name="Example Estates, Sheffield")
+    assert apply_filters([record], criteria, conn) == []
+
+
+def test_keeps_agent_that_is_not_blocked(conn, record_factory):
+    criteria = {**BASE, "exclusions": {"agent_excludes": ["example estates"]}}
+    record = record_factory(agent_name="Other Agents")
+    assert len(apply_filters([record], criteria, conn)) == 1
+
+
+def test_drops_listings_with_too_few_photos(conn, record_factory):
+    criteria = {**BASE, "min_image_count": 3}
+    assert apply_filters([record_factory(image_count=1)], criteria, conn) == []
+
+
+def test_drops_property_over_the_price_per_sqft_ceiling(conn, record_factory):
+    criteria = {**BASE, "max_price_per_sqft": 200}
+    record = record_factory(price=250000, floor_area_sqft=500)
+    assert apply_filters([record], criteria, conn) == []
+
+
+def test_keeps_unmeasured_property_when_capping_price_per_sqft(conn, record_factory):
+    """Most listings never state a floor area; they must not all be dropped."""
+    criteria = {**BASE, "max_price_per_sqft": 200}
+    record = record_factory(floor_area_sqft=None)
+    assert len(apply_filters([record], criteria, conn)) == 1
+
+
+# --- Enrichment filters, applied after public-record data is attached ---
+
+
+def test_enrichment_filter_is_a_no_op_when_nothing_is_configured(record_factory):
+    records = [record_factory()]
+    assert apply_enrichment_filters(records, BASE) is records
+
+
+def test_drops_epc_below_the_minimum(record_factory):
+    criteria = {**BASE, "min_epc_rating": "C"}
+    assert apply_enrichment_filters([record_factory(epc_current=40)], criteria) == []
+
+
+def test_keeps_epc_exactly_at_the_minimum(record_factory):
+    criteria = {**BASE, "min_epc_rating": "C"}
+    assert len(apply_enrichment_filters([record_factory(epc_current=69)], criteria)) == 1
+
+
+def test_falls_back_to_the_epc_letter_when_there_is_no_score(record_factory):
+    criteria = {**BASE, "min_epc_rating": "C"}
+    assert apply_enrichment_filters([record_factory(epc_rating="E")], criteria) == []
+
+
+def test_keeps_property_with_no_epc_data(record_factory):
+    """Enrichment is capped per run, so most records arrive with nothing."""
+    criteria = {**BASE, "min_epc_rating": "C"}
+    assert len(apply_enrichment_filters([record_factory()], criteria)) == 1
+
+
+def test_drops_property_with_too_much_crime(record_factory):
+    criteria = {**BASE, "max_crime_incidents": 10}
+    record = record_factory(crime_incidents_nearby=40)
+    assert apply_enrichment_filters([record], criteria) == []
+
+
+def test_drops_property_with_slow_broadband(record_factory):
+    criteria = {**BASE, "min_broadband_mbps": 100}
+    record = record_factory(broadband_max_mbps=12.0)
+    assert apply_enrichment_filters([record], criteria) == []
+
+
+def test_drops_property_priced_above_local_comparables(record_factory):
+    criteria = {**BASE, "max_price_vs_local_pct": 10}
+    record = record_factory(price_vs_local_pct=25.0)
+    assert apply_enrichment_filters([record], criteria) == []
+
+
+def test_keeps_property_priced_below_local_comparables(record_factory):
+    criteria = {**BASE, "max_price_vs_local_pct": 10}
+    record = record_factory(price_vs_local_pct=-5.0)
+    assert len(apply_enrichment_filters([record], criteria)) == 1
+
+
+def test_drops_flood_risk_when_excluded(record_factory):
+    criteria = {**BASE, "exclusions": {"no_flood_risk": True}}
+    record = record_factory(flood_warnings_nearby=2)
+    assert apply_enrichment_filters([record], criteria) == []
+
+
+def test_keeps_property_with_no_flood_data(record_factory):
+    criteria = {**BASE, "exclusions": {"no_flood_risk": True}}
+    assert len(apply_enrichment_filters([record_factory()], criteria)) == 1
