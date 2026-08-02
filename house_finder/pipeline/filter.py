@@ -33,6 +33,17 @@ _HOUSE_SHARE = re.compile(r"\b(house share|flat share|room in a|room to rent|hmo
 _STUDENT_ONLY = re.compile(r"\b(students? only|student accommodation|student let)\b", re.I)
 _AUCTION = re.compile(r"\b(for sale by (?:modern |traditional )?auction|auction only)\b", re.I)
 
+# Features agents reliably advertise, so "must have" can be judged from the
+# listing text. This is the one place a missing mention counts against a
+# property: nobody sells a house with a garden without saying so.
+_MUST_HAVE_PATTERNS = {
+    "garden": re.compile(r"\b(garden|patio|yard|outdoor space)\b", re.I),
+    "parking": re.compile(
+        r"\b(parking|garage|driveway|car ?port|off[\s-]?street)\b", re.I
+    ),
+    "chain_free": re.compile(r"\b(no (?:onward )?chain|chain[\s-]?free)\b", re.I),
+}
+
 # "999 year lease", "left on the lease: 87 years", "87 years remaining"
 _LEASE_YEARS = (
     re.compile(r"(\d{2,4})\s*(?:\+)?\s*years?\s+(?:remaining|left|unexpired)", re.I),
@@ -119,11 +130,18 @@ def apply_filters(
     bedrooms_min = criteria.get("bedrooms_min")
     bedrooms_max = criteria.get("bedrooms_max")
     bathrooms_min = criteria.get("bathrooms_min")
+    bathrooms_max = criteria.get("bathrooms_max")
     allowed_types = set(criteria.get("property_types") or [])
     max_days = criteria.get("max_days_since_listed")
     min_lease = exclusions.get("no_leasehold_under_years")
+    size_min = criteria.get("min_size_sqft")
+    size_max = criteria.get("max_size_sqft")
+    must_have_features = [
+        f for f in (criteria.get("must_have_features") or []) if f in _MUST_HAVE_PATTERNS
+    ]
 
     keyword_pattern = build_keyword_pattern(exclusions.get("keyword_excludes") or [])
+    include_pattern = build_keyword_pattern(criteria.get("keyword_includes") or [])
     cooldown = _cooldown_urls(conn, cooldown_days, today) if conn is not None else set()
 
     # Radius is enforced server-side by the portal, so this only catches
@@ -164,6 +182,20 @@ def apply_filters(
         if bathrooms_min is not None and record.bathrooms is not None:
             if record.bathrooms < bathrooms_min:
                 drops["too_few_bathrooms"] += 1
+                continue
+        if bathrooms_max is not None and record.bathrooms is not None:
+            if record.bathrooms > bathrooms_max:
+                drops["too_many_bathrooms"] += 1
+                continue
+
+        # Floor area is absent from most listings, so only judge the ones
+        # that state it rather than discarding everything unmeasured.
+        if record.floor_area_sqft is not None:
+            if size_min and record.floor_area_sqft < size_min:
+                drops["too_small"] += 1
+                continue
+            if size_max and record.floor_area_sqft > size_max:
+                drops["too_large"] += 1
                 continue
 
         if allowed_types and record.property_type not in allowed_types:
@@ -222,6 +254,18 @@ def apply_filters(
 
         if keyword_pattern is not None and keyword_pattern.search(text):
             drops["excluded_keyword"] += 1
+            continue
+
+        if include_pattern is not None and not include_pattern.search(text):
+            drops["missing_required_keyword"] += 1
+            continue
+
+        missing_feature = next(
+            (f for f in must_have_features if not _MUST_HAVE_PATTERNS[f].search(text)),
+            None,
+        )
+        if missing_feature:
+            drops[f"missing_{missing_feature}"] += 1
             continue
 
         if record.property_id in cooldown:
