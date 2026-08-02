@@ -162,6 +162,22 @@ or sync it to your phone.
   fills in the "One-off area search" issue form for you; press Create and GitHub
   runs it, and the map picks up whatever it found.
 
+### One-off searches without filing an issue
+
+The issue form is the route that works from a phone with nothing installed, but
+it is not the only one. None of these touch your saved criteria or the schedule
+either.
+
+- **The Actions tab.** Actions -> *Daily House Search* -> **Run workflow**, and
+  put the place in the "One-off: search this postcode or place" box. Same run,
+  same criteria, no issue left behind.
+- **`house-finder ui`.** Start it and open <http://127.0.0.1:8765/map>. That is
+  your real map, served by the editor, so "Search another area" runs on your own
+  machine there and then - nothing filed, no Actions minutes spent.
+- **The command line.** `house-finder run --area "CH7" --radius 3 --no-rank`.
+  `--area` only swaps out the places searched; every other filter still applies.
+  The map's *copy the command* link writes this line for whatever you typed.
+
 ---
 
 ## The spreadsheet
