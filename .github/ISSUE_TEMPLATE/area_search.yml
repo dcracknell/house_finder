@@ -14,6 +14,8 @@ body:
 
         Submit this and the search starts on its own. Give it a few minutes,
         then reload the map.
+
+        Coming from the map, everything below is already filled in for you.
   - type: input
     id: area
     attributes:
@@ -22,45 +24,34 @@ body:
       placeholder: S10
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: radius
     attributes:
-      label: Within
-      description: How far around that point to look.
-      options:
-        - this area only
-        - 1 mile
-        - 3 miles
-        - 5 miles
-        - 10 miles
-        - 15 miles
-        - 20 miles
-        - 30 miles
-        - 40 miles
-      default: 2
+      label: Within, in miles
+      description: >-
+        How far around that point to look. 0 keeps it to the area itself.
+        Anything else is snapped to the nearest radius Rightmove allows.
+      placeholder: "3"
+      value: "3"
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: mode
     attributes:
       label: Looking to
-      options:
-        - buy and rent
-        - buy
-        - rent
-      default: 0
+      description: "buy, rent, or leave it as both."
+      placeholder: both
+      value: both
     validations:
-      required: true
-  - type: dropdown
+      required: false
+  - type: input
     id: scoring
     attributes:
       label: Scoring
       description: >-
-        Keyword only costs nothing. As configured uses the AI if you have set an
-        API key, which costs a few pence.
-      options:
-        - as configured
-        - keyword only - no API spend
-      default: 0
+        keyword is free. ai scores each place properly against what you wrote,
+        and costs a few pence, if you have set an API key.
+      placeholder: keyword
+      value: keyword
     validations:
-      required: true
+      required: false
