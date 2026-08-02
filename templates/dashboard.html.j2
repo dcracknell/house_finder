@@ -38,6 +38,19 @@
     background: var(--bg); color: var(--accent);
   }
   .actions a:hover { border-color: var(--accent); }
+  .area-panel {
+    padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .area-fields { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .area-fields > div { flex: 1; min-width: 140px; }
+  .area-fields label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  .area-fields button {
+    font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--accent); background: var(--accent); color: #fff;
+  }
+  .area-fields button[disabled] { opacity: .5; cursor: default; }
+  .area-msg { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+  .area-msg a { color: var(--accent); }
   .layout { flex: 1; display: flex; min-height: 0; }
   #map { flex: 1; min-height: 320px; }
   aside {
@@ -117,10 +130,49 @@
     <span>updated {{ generated_at }}</span>
   </div>
   <div class="actions">
+    <a id="try-area" href="#">Search another area</a>
     <a id="edit-prefs" href="http://127.0.0.1:8765/" target="_blank" rel="noopener"
        title="Change your search criteria. Run `house-finder ui` first if the editor is not already running.">Change what I am looking for</a>
   </div>
 </header>
+
+<div id="area-panel" class="area-panel" hidden>
+  <div class="area-fields">
+    <div>
+      <label for="area-place">Postcode or place</label>
+      <input id="area-place" type="search" placeholder="e.g. S10 or Hathersage">
+    </div>
+    <div>
+      <label for="area-radius">Within</label>
+      <select id="area-radius">
+        <option value="0">this area only</option>
+        <option value="1">1 mile</option>
+        <option value="3" selected>3 miles</option>
+        <option value="5">5 miles</option>
+        <option value="10">10 miles</option>
+        <option value="15">15 miles</option>
+        <option value="20">20 miles</option>
+      </select>
+    </div>
+    <div>
+      <label for="area-mode">Looking to</label>
+      <select id="area-mode">
+        <option value="">buy and rent</option>
+        <option value="buy">buy</option>
+        <option value="rent">rent</option>
+      </select>
+    </div>
+    <div>
+      <label for="area-ai">Scoring</label>
+      <select id="area-ai">
+        <option value="0">keyword only, free</option>
+        <option value="1">AI scoring, costs a few pence</option>
+      </select>
+    </div>
+    <button id="area-run" type="button">Search this area</button>
+  </div>
+  <p id="area-msg" class="area-msg">A one-off look. Your saved criteria are not changed.</p>
+</div>
 
 <div class="layout">
   <div id="map"></div>
@@ -210,6 +262,95 @@ const CENTRE = {{ centre_json | safe }};
   link.href = 'https://github.com/' + user[1] + '/' + repo +
     '/issues/new?template=house_search_profile.yml';
   link.title = 'Opens the House search setup form on GitHub.';
+})();
+
+// "Search another area" - a one-off look somewhere that is not in your profile.
+// Locally the editor server does the work; on GitHub Pages there is nothing to
+// talk to, so point at the workflow that can do the same thing.
+(function areaSearch() {
+  const EDITOR = 'http://127.0.0.1:8765';
+  const toggle = document.getElementById('try-area');
+  const panel = document.getElementById('area-panel');
+  if (!toggle || !panel) return;
+
+  toggle.addEventListener('click', function (event) {
+    event.preventDefault();
+    panel.hidden = !panel.hidden;
+    const place = document.getElementById('area-place');
+    if (!panel.hidden && place) place.focus();
+  });
+
+  const pages = location.hostname.match(/^([^.]+)\.github\.io$/);
+  if (pages) {
+    const repo = location.pathname.split('/').filter(Boolean)[0];
+    const workflow = 'https://github.com/' + pages[1] + '/' + repo +
+      '/actions/workflows/daily_run.yml';
+    panel.innerHTML = '<p class="area-msg">Nothing local is running here. Open the ' +
+      '<a href="' + workflow + '" target="_blank" rel="noopener">Daily House Search ' +
+      'workflow</a>, choose Run workflow, and fill in the area, the radius and ' +
+      'whether to score it with the AI.</p>';
+    return;
+  }
+
+  const runButton = document.getElementById('area-run');
+  const message = document.getElementById('area-msg');
+  let poller = null;
+
+  function chosen() {
+    return {
+      area: document.getElementById('area-place').value.trim(),
+      radius: document.getElementById('area-radius').value,
+      mode: document.getElementById('area-mode').value,
+      use_ai: document.getElementById('area-ai').value === '1'
+    };
+  }
+
+  function commandFor(pick) {
+    let command = 'house-finder run --area "' + pick.area + '" --radius ' + pick.radius;
+    if (pick.mode) command += ' --mode ' + pick.mode;
+    if (!pick.use_ai) command += ' --no-rank';
+    return command;
+  }
+
+  function stop(text) {
+    if (poller) { clearInterval(poller); poller = null; }
+    runButton.disabled = false;
+    message.textContent = text;
+  }
+
+  async function checkProgress() {
+    try {
+      const res = await fetch(EDITOR + '/api/run-status');
+      const state = (await res.json()).run || {};
+      if (state.running) return;
+      stop(state.ok
+        ? 'Done. Reload this page to see what it found.'
+        : 'That search failed - check the window running house-finder ui.');
+    } catch (err) {
+      stop('Lost contact with the editor. Is house-finder ui still running?');
+    }
+  }
+
+  runButton.addEventListener('click', async function () {
+    const pick = chosen();
+    if (!pick.area) { message.textContent = 'Type a postcode or place first.'; return; }
+
+    runButton.disabled = true;
+    message.textContent = 'Asking for a search of ' + pick.area + '...';
+    try {
+      const res = await fetch(EDITOR + '/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pick)
+      });
+      const data = await res.json();
+      if (!data.ok) { stop(data.error || 'The editor would not start that.'); return; }
+      message.textContent = 'Searching ' + pick.area + '. This takes a few minutes.';
+      poller = setInterval(checkProgress, 4000);
+    } catch (err) {
+      stop('No editor running. Start house-finder ui, or run: ' + commandFor(pick));
+    }
+  });
 })();
 
 function initMap() {
