@@ -304,12 +304,6 @@ function githubUrl(path) {
       return;
     }
 
-    const RADIUS_LABEL = {
-      '0': 'this area only', '1': '1 mile', '3': '3 miles', '5': '5 miles',
-      '10': '10 miles', '15': '15 miles', '20': '20 miles'
-    };
-    const MODE_LABEL = { '': 'buy and rent', buy: 'buy', rent: 'rent' };
-
     button.textContent = 'Search this area on GitHub';
     note.textContent = 'Nothing is running on this machine, so GitHub does the ' +
       'work. You get a filled-in form - press Create and the search starts. ' +
@@ -322,9 +316,9 @@ function githubUrl(path) {
         template: 'area_search.yml',
         title: 'Area search: ' + pick.area,
         area: pick.area,
-        radius: RADIUS_LABEL[pick.radius] || '3 miles',
-        mode: MODE_LABEL[pick.mode] || 'buy and rent',
-        scoring: pick.use_ai ? 'as configured' : 'keyword only - no API spend'
+        radius: pick.radius,
+        mode: pick.mode || 'both',
+        scoring: pick.use_ai ? 'ai' : 'keyword'
       });
       window.open(form + '?' + query, '_blank', 'noopener');
       note.textContent = 'Opened the form on GitHub for ' + pick.area +
