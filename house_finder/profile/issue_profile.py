@@ -35,6 +35,30 @@ _TYPE_ALIASES = {
     "plot": "land",
 }
 
+# Checkbox labels are prose, so map them by substring. Order matters:
+# "share of freehold" must be tried before the "freehold" it contains.
+_TENURE_ALIASES = {
+    "share of freehold": "share_of_freehold",
+    "freehold": "freehold",
+    "leasehold": "leasehold",
+}
+
+_FEATURE_ALIASES = {
+    "chain": "chain_free",
+    "garden": "garden",
+    "outdoor": "garden",
+    "parking": "parking",
+    "garage": "parking",
+    "driveway": "parking",
+}
+
+_FURNISHED_ALIASES = {
+    "any": "any",
+    "furnished": "furnished",
+    "unfurnished": "unfurnished",
+    "part furnished": "part_furnished",
+}
+
 
 def parse_issue_body(body: str) -> dict[str, str]:
     """Split an issue body into {lowercased heading: value}."""
@@ -105,6 +129,20 @@ def _checkbox_list(sections: dict[str, str], *names: str) -> list[str]:
         m.group(1).strip().lower()
         for m in re.finditer(r"^\s*-\s*\[[xX]\]\s*(.+?)\s*$", raw, re.M)
     ]
+
+
+def _mapped_checkboxes(
+    sections: dict[str, str], aliases: dict[str, str], *names: str
+) -> list[str]:
+    """Ticked checkbox labels mapped onto canonical names by substring."""
+    out: list[str] = []
+    for value in _checkbox_list(sections, *names):
+        for needle, canonical in aliases.items():
+            if needle in value:
+                if canonical not in out:
+                    out.append(canonical)
+                break
+    return out
 
 
 def _property_types(sections: dict[str, str], *names: str) -> list[str]:
@@ -178,6 +216,22 @@ def build_profile_from_issue(
             buy["bedrooms_min"] = beds
         if (baths := _int(sections, "buy - minimum bathrooms")) is not None:
             buy["bathrooms_min"] = baths
+        if (beds_max := _int(sections, "buy - maximum bedrooms")) is not None:
+            buy["bedrooms_max"] = beds_max
+        if (baths_max := _int(sections, "buy - maximum bathrooms")) is not None:
+            buy["bathrooms_max"] = baths_max
+        if (size_min := _int(sections, "buy - minimum size")) is not None:
+            buy["min_size_sqft"] = size_min
+        if (size_max := _int(sections, "buy - maximum size")) is not None:
+            buy["max_size_sqft"] = size_max
+        if tenures := _mapped_checkboxes(sections, _TENURE_ALIASES, "buy - tenure"):
+            buy["tenure_types"] = tenures
+        if features := _mapped_checkboxes(
+            sections, _FEATURE_ALIASES, "buy - must have"
+        ):
+            buy["must_have_features"] = features
+        if includes := _list(sections, "buy - words a listing must contain"):
+            buy["keyword_includes"] = includes
         if types := _property_types(sections, "buy - property types"):
             buy["property_types"] = types
         if musts := _list(sections, "buy - must-haves"):
@@ -211,6 +265,20 @@ def build_profile_from_issue(
         }
         if (beds := _int(sections, "rent - minimum bedrooms")) is not None:
             rent["bedrooms_min"] = beds
+        if (beds_max := _int(sections, "rent - maximum bedrooms")) is not None:
+            rent["bedrooms_max"] = beds_max
+        if (baths := _int(sections, "rent - minimum bathrooms")) is not None:
+            rent["bathrooms_min"] = baths
+        if furnished := _value(sections, "rent - furnishing"):
+            rent["furnished"] = _FURNISHED_ALIASES.get(furnished.strip().lower(), "any")
+        if (tenancy := _int(sections, "rent - minimum tenancy")) is not None:
+            rent["min_tenancy_months"] = tenancy
+        if features := _mapped_checkboxes(
+            sections, _FEATURE_ALIASES, "rent - must have"
+        ):
+            rent["must_have_features"] = features
+        if includes := _list(sections, "rent - words a listing must contain"):
+            rent["keyword_includes"] = includes
         if types := _property_types(sections, "rent - property types"):
             rent["property_types"] = types
         if musts := _list(sections, "rent - must-haves"):
