@@ -112,6 +112,19 @@ def main() -> None:
     show_default=True,
     help="Max properties to enrich per run (highest-scoring first).",
 )
+@click.option(
+    "--area",
+    "area_overrides",
+    multiple=True,
+    help="Search this postcode or place instead of the ones in your profile. "
+    "Repeatable, and nothing is saved - your own criteria are left alone.",
+)
+@click.option(
+    "--radius",
+    "area_radius",
+    type=float,
+    help="Radius in miles for --area. Snapped to the nearest radius Rightmove allows.",
+)
 def run(
     dry_run: bool,
     mode: str | None,
@@ -119,12 +132,22 @@ def run(
     no_rank: bool,
     no_enrich: bool,
     enrich_limit: int,
+    area_overrides: tuple[str, ...],
+    area_radius: float | None,
 ) -> None:
     """Run the full pipeline: fetch, filter, score, save, export, map."""
     _load_env()
     settings, profile, sources = _load_all()
     _configure_logging(settings.get("log_level", "INFO"))
     _check_profile_configured(profile)
+
+    if area_overrides:
+        where = ", ".join(area_overrides)
+        radius_text = f" within {area_radius:g} miles" if area_radius is not None else ""
+        click.echo(
+            f"One-off search of {where}{radius_text}. "
+            "Your saved search areas are unchanged."
+        )
 
     run_mode = str(settings.get("mode", "passive")).lower()
     if run_mode == "paused":
@@ -154,6 +177,15 @@ def run(
         for current_mode in modes:
             listing_type = _listing_type(current_mode)
             criteria = _criteria_for(profile, current_mode)
+            if area_overrides:
+                criteria["search_areas"] = [
+                    {
+                        "label": place,
+                        "postcode_or_place": place,
+                        "radius_miles": area_radius,
+                    }
+                    for place in area_overrides
+                ]
             areas = _resolve_areas(criteria)
             if not areas:
                 logger.warning("run: no search areas configured for %s", current_mode)
