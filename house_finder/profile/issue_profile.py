@@ -111,6 +111,26 @@ def _int(sections: dict[str, str], *names: str) -> int | None:
         return None
 
 
+def _float(sections: dict[str, str], *names: str) -> float | None:
+    raw = _value(sections, *names)
+    if not raw:
+        return None
+    match = re.search(r"-?\d[\d,]*(?:\.\d+)?", raw.replace("£", ""))
+    if not match:
+        return None
+    try:
+        return float(match.group(0).replace(",", ""))
+    except ValueError:
+        return None
+
+
+def _epc_rating(sections: dict[str, str], *names: str) -> str:
+    """Letter from an EPC dropdown value ("C or better" -> "C", "Any" -> "")."""
+    raw = _value(sections, *names).strip().upper()
+    match = re.match(r"([A-G])\b", raw)
+    return match.group(1) if match else ""
+
+
 def _bool(sections: dict[str, str], *names: str) -> bool | None:
     raw = _value(sections, *names).lower()
     if not raw:
@@ -232,6 +252,20 @@ def build_profile_from_issue(
             buy["must_have_features"] = features
         if includes := _list(sections, "buy - words a listing must contain"):
             buy["keyword_includes"] = includes
+        if outcodes := _list(sections, "buy - only these outcodes"):
+            buy["outcode_includes"] = outcodes
+        if (photos := _int(sections, "buy - minimum photos")) is not None:
+            buy["min_image_count"] = photos
+        if epc := _epc_rating(sections, "buy - minimum epc rating"):
+            buy["min_epc_rating"] = epc
+        if (crime := _int(sections, "buy - maximum crimes nearby")) is not None:
+            buy["max_crime_incidents"] = crime
+        if (mbps := _float(sections, "buy - minimum broadband")) is not None:
+            buy["min_broadband_mbps"] = mbps
+        if (ppsf := _int(sections, "buy - maximum price per sq ft")) is not None:
+            buy["max_price_per_sqft"] = ppsf
+        if (over := _float(sections, "buy - maximum percent above local")) is not None:
+            buy["max_price_vs_local_pct"] = over
         if types := _property_types(sections, "buy - property types"):
             buy["property_types"] = types
         if musts := _list(sections, "buy - must-haves"):
@@ -249,10 +283,15 @@ def build_profile_from_issue(
             exclusions["no_park_homes"] = any("park" in r or "mobile" in r for r in ruled_out)
             exclusions["no_auction"] = any("auction" in r for r in ruled_out)
             exclusions["no_new_build"] = any("new build" in r for r in ruled_out)
+            exclusions["no_flood_risk"] = any("flood" in r for r in ruled_out)
         if keywords := _list(sections, "buy - words that rule a property out"):
             exclusions["keyword_excludes"] = keywords
         if (lease := _int(sections, "buy - minimum lease years")) is not None:
             exclusions["no_leasehold_under_years"] = lease
+        if outcodes := _list(sections, "buy - never these outcodes"):
+            exclusions["outcode_excludes"] = outcodes
+        if agents := _list(sections, "buy - ignore these agents"):
+            exclusions["agent_excludes"] = agents
         buy["exclusions"] = exclusions
         profile["buy"] = buy
 
@@ -279,6 +318,16 @@ def build_profile_from_issue(
             rent["must_have_features"] = features
         if includes := _list(sections, "rent - words a listing must contain"):
             rent["keyword_includes"] = includes
+        if outcodes := _list(sections, "rent - only these outcodes"):
+            rent["outcode_includes"] = outcodes
+        if (photos := _int(sections, "rent - minimum photos")) is not None:
+            rent["min_image_count"] = photos
+        if epc := _epc_rating(sections, "rent - minimum epc rating"):
+            rent["min_epc_rating"] = epc
+        if (crime := _int(sections, "rent - maximum crimes nearby")) is not None:
+            rent["max_crime_incidents"] = crime
+        if (mbps := _float(sections, "rent - minimum broadband")) is not None:
+            rent["min_broadband_mbps"] = mbps
         if types := _property_types(sections, "rent - property types"):
             rent["property_types"] = types
         if musts := _list(sections, "rent - must-haves"):
@@ -293,8 +342,13 @@ def build_profile_from_issue(
         if ruled_out:
             exclusions["no_house_share"] = any("share" in r for r in ruled_out)
             exclusions["no_student_only"] = any("student" in r for r in ruled_out)
+            exclusions["no_flood_risk"] = any("flood" in r for r in ruled_out)
         if keywords := _list(sections, "rent - words that rule a property out"):
             exclusions["keyword_excludes"] = keywords
+        if outcodes := _list(sections, "rent - never these outcodes"):
+            exclusions["outcode_excludes"] = outcodes
+        if agents := _list(sections, "rent - ignore these agents"):
+            exclusions["agent_excludes"] = agents
         rent["exclusions"] = exclusions
         profile["rent"] = rent
 
