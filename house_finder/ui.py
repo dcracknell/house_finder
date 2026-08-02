@@ -3,6 +3,9 @@
 Serves a small form-based editor for config/profile.json so search criteria can
 be changed without hand-editing JSON. Binds to localhost only - it writes to
 your config directory and has no authentication.
+
+It can also start a one-off search of an area that is not in your profile,
+which is what the "Search another area" button on the map talks to.
 """
 
 from __future__ import annotations
@@ -10,7 +13,10 @@ from __future__ import annotations
 import json
 import logging
 import re
+import subprocess
+import sys
 import threading
+import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -81,12 +87,81 @@ def _validate_profile(profile: dict) -> list[str]:
     return problems
 
 
+# ---------------------------------------------------------------------------
+# One-off area searches
+# ---------------------------------------------------------------------------
+
+# dashboard.html is a file on disk, so its requests arrive cross-origin. Only
+# local pages are allowed to reach the API: a browser will not let a real
+# website claim one of these origins, so no site can make your machine search.
+_LOCAL_ORIGIN = re.compile(r"^(null|file://.*|https?://(localhost|127\.0\.0\.1)(:\d+)?)$")
+
+_PLACE = re.compile(r"^[\w ,'&()./-]{1,60}$")
+
+_run_lock = threading.Lock()
+_run_state: dict = {
+    "running": False,
+    "command": "",
+    "ok": None,
+    "output": "",
+    "finished_at": None,
+}
+
+
+def build_run_command(payload: dict) -> list[str]:
+    """Turn a request from the map into a `house-finder run` command line."""
+    place = str(payload.get("area") or "").strip()
+    if not _PLACE.match(place):
+        raise ValueError("Enter a postcode or place name.")
+
+    command = [sys.executable, "-m", "house_finder.cli", "run", "--area", place]
+
+    radius = payload.get("radius")
+    if radius not in (None, ""):
+        try:
+            command += ["--radius", str(float(radius))]
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Radius must be a number.") from exc
+
+    if payload.get("mode") in ("buy", "rent"):
+        command += ["--mode", str(payload["mode"])]
+
+    # Scoring costs money, so a curious look at another area is free unless you
+    # deliberately ask for the AI pass.
+    if not payload.get("use_ai"):
+        command += ["--no-rank"]
+    return command
+
+
+def describe_run_command(command: list[str]) -> str:
+    """The same command as the user would type it themselves."""
+    return " ".join(["house-finder", *command[3:]])
+
+
+def _run_in_background(command: list[str]) -> None:
+    try:
+        finished = subprocess.run(
+            command, cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=3600
+        )
+        output = (finished.stdout or "") + (finished.stderr or "")
+        ok = finished.returncode == 0
+    except Exception as exc:  # noqa: BLE001 - reported back to the browser
+        output, ok = str(exc), False
+
+    with _run_lock:
+        _run_state.update(
+            running=False, ok=ok, output=output[-4000:], finished_at=time.time()
+        )
+    logger.info("ui: one-off run finished (ok=%s)", ok)
+
+
 class _Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):  # noqa: A003 - silence default stderr spam
         logger.debug("ui: " + fmt, *args)
 
     def _send(self, code: int, body: bytes, content_type: str) -> None:
         self.send_response(code)
+        self._allow_local_origin()
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
@@ -96,6 +171,51 @@ class _Handler(BaseHTTPRequestHandler):
     def _send_json(self, code: int, payload: dict) -> None:
         self._send(code, json.dumps(payload).encode("utf-8"), "application/json")
 
+    def _allow_local_origin(self) -> None:
+        """Let a dashboard.html opened from disk talk to this server."""
+        origin = self.headers.get("Origin")
+        if origin and _LOCAL_ORIGIN.match(origin):
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+
+    def do_OPTIONS(self) -> None:  # noqa: N802 - required by BaseHTTPRequestHandler
+        self.send_response(204)
+        self._allow_local_origin()
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def _start_run(self) -> None:
+        """Start a one-off search for an area that is not in the profile."""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except (ValueError, TypeError) as exc:
+            self._send_json(400, {"ok": False, "error": f"Invalid JSON: {exc}"})
+            return
+
+        try:
+            command = build_run_command(payload)
+        except ValueError as exc:
+            self._send_json(400, {"ok": False, "error": str(exc)})
+            return
+
+        described = describe_run_command(command)
+        with _run_lock:
+            if _run_state["running"]:
+                self._send_json(
+                    409, {"ok": False, "error": "A search is already running."}
+                )
+                return
+            _run_state.update(
+                running=True, ok=None, output="", finished_at=None, command=described
+            )
+
+        logger.info("ui: starting one-off run: %s", described)
+        threading.Thread(target=_run_in_background, args=(command,), daemon=True).start()
+        self._send_json(202, {"ok": True, "command": described})
+
     def do_GET(self) -> None:  # noqa: N802 - required by BaseHTTPRequestHandler
         if self.path in ("/", "/index.html"):
             try:
@@ -104,6 +224,11 @@ class _Handler(BaseHTTPRequestHandler):
                 self._send(500, f"Cannot read editor template: {exc}".encode(), "text/plain")
                 return
             self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
+            return
+
+        if self.path == "/api/run-status":
+            with _run_lock:
+                self._send_json(200, {"ok": True, "run": dict(_run_state)})
             return
 
         if self.path == "/api/profile":
@@ -116,6 +241,10 @@ class _Handler(BaseHTTPRequestHandler):
         self._send(404, b"Not found", "text/plain")
 
     def do_POST(self) -> None:  # noqa: N802 - required by BaseHTTPRequestHandler
+        if self.path == "/api/run":
+            self._start_run()
+            return
+
         if self.path != "/api/profile":
             self._send(404, b"Not found", "text/plain")
             return
