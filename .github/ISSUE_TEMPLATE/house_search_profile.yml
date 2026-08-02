@@ -80,6 +80,53 @@ body:
     validations:
       required: false
 
+  - type: input
+    id: buy_max_beds
+    attributes:
+      label: Buy - maximum bedrooms
+      description: Leave blank for no upper limit.
+      placeholder: "4"
+    validations:
+      required: false
+
+  - type: input
+    id: buy_max_baths
+    attributes:
+      label: Buy - maximum bathrooms
+      placeholder: "3"
+    validations:
+      required: false
+
+  - type: input
+    id: buy_min_size
+    attributes:
+      label: Buy - minimum size
+      description: >-
+        Square feet. Only applied to listings that state a floor area, so
+        nothing is discarded just for being unmeasured.
+      placeholder: "900"
+    validations:
+      required: false
+
+  - type: input
+    id: buy_max_size
+    attributes:
+      label: Buy - maximum size
+      description: Square feet.
+      placeholder: "2500"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: buy_tenure
+    attributes:
+      label: Buy - tenure
+      description: Leave all unticked to allow any tenure.
+      options:
+        - label: Freehold
+        - label: Leasehold
+        - label: Share of freehold
+
   - type: checkboxes
     id: buy_types
     attributes:
@@ -112,6 +159,29 @@ body:
       placeholder: |
         garage
         no chain
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: buy_must_features
+    attributes:
+      label: Buy - must have
+      description: >-
+        Unlike the wish-list above, these rule a property out. Garden and
+        parking are passed straight to Rightmove.
+      options:
+        - label: Garden or outdoor space
+        - label: Parking, garage or driveway
+        - label: No onward chain
+
+  - type: textarea
+    id: buy_includes
+    attributes:
+      label: Buy - words a listing must contain
+      description: One per line. A listing only has to match one of them.
+      placeholder: |
+        no chain
+        south facing garden
     validations:
       required: false
 
@@ -208,6 +278,44 @@ body:
     validations:
       required: false
 
+  - type: input
+    id: rent_max_beds
+    attributes:
+      label: Rent - maximum bedrooms
+      description: Leave blank for no upper limit.
+      placeholder: "3"
+    validations:
+      required: false
+
+  - type: input
+    id: rent_min_baths
+    attributes:
+      label: Rent - minimum bathrooms
+      placeholder: "1"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: rent_furnishing
+    attributes:
+      label: Rent - furnishing
+      options:
+        - Any
+        - Furnished
+        - Unfurnished
+        - Part furnished
+    validations:
+      required: false
+
+  - type: input
+    id: rent_tenancy
+    attributes:
+      label: Rent - minimum tenancy
+      description: Months.
+      placeholder: "12"
+    validations:
+      required: false
+
   - type: checkboxes
     id: rent_types
     attributes:
@@ -232,6 +340,26 @@ body:
     attributes:
       label: Rent - nice-to-haves
       description: One per line.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: rent_must_features
+    attributes:
+      label: Rent - must have
+      description: These rule a property out rather than just scoring it down.
+      options:
+        - label: Garden or outdoor space
+        - label: Parking, garage or driveway
+
+  - type: textarea
+    id: rent_includes
+    attributes:
+      label: Rent - words a listing must contain
+      description: One per line. A listing only has to match one of them.
+      placeholder: |
+        bills included
+        pets considered
     validations:
       required: false
 
