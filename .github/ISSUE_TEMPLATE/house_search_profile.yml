@@ -195,6 +195,7 @@ body:
         - label: Park or mobile homes
         - label: Auction properties
         - label: New builds
+        - label: Flood warnings nearby
 
   - type: input
     id: buy_lease
@@ -213,6 +214,106 @@ body:
       placeholder: |
         cash buyers only
         japanese knotweed
+    validations:
+      required: false
+
+  - type: textarea
+    id: buy_outcodes_in
+    attributes:
+      label: Buy - only these outcodes
+      description: One per line. Leave blank to allow anywhere in the search area.
+      placeholder: |
+        S10
+        S11
+    validations:
+      required: false
+
+  - type: textarea
+    id: buy_outcodes_out
+    attributes:
+      label: Buy - never these outcodes
+      description: One per line.
+      placeholder: |
+        S2
+    validations:
+      required: false
+
+  - type: textarea
+    id: buy_agents
+    attributes:
+      label: Buy - ignore these agents
+      description: One per line. Part of the agent name is enough.
+      placeholder: |
+        Example Estates
+    validations:
+      required: false
+
+  - type: input
+    id: buy_min_photos
+    attributes:
+      label: Buy - minimum photos
+      description: Leave blank unless you want to skip sparse listings.
+      placeholder: "3"
+    validations:
+      required: false
+
+  - type: input
+    id: buy_max_ppsf
+    attributes:
+      label: Buy - maximum price per sq ft
+      description: Only applied to listings that state a floor area.
+      placeholder: "350"
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: >-
+        The checks below read public records fetched after the search, so they
+        only apply once enrichment is switched on in `config/sources.yaml`.
+        Anything with no data for a given check is kept.
+
+  - type: dropdown
+    id: buy_epc
+    attributes:
+      label: Buy - minimum EPC rating
+      description: Any means do not filter on EPC at all.
+      options:
+        - Any
+        - A
+        - B or better
+        - C or better
+        - D or better
+        - E or better
+        - F or better
+      default: 0
+    validations:
+      required: false
+
+  - type: input
+    id: buy_max_crime
+    attributes:
+      label: Buy - maximum crimes nearby
+      description: Reported incidents in the last month near the property.
+      placeholder: "50"
+    validations:
+      required: false
+
+  - type: input
+    id: buy_min_broadband
+    attributes:
+      label: Buy - minimum broadband
+      description: Megabits per second.
+      placeholder: "100"
+    validations:
+      required: false
+
+  - type: input
+    id: buy_max_over_local
+    attributes:
+      label: Buy - maximum percent above local
+      description: How far above nearby sold prices you will go, as a percentage.
+      placeholder: "10"
     validations:
       required: false
 
@@ -370,6 +471,88 @@ body:
       options:
         - label: House shares and rooms
         - label: Student-only lets
+        - label: Flood warnings nearby
+
+  - type: textarea
+    id: rent_outcodes_in
+    attributes:
+      label: Rent - only these outcodes
+      description: One per line. Leave blank to allow anywhere in the search area.
+      placeholder: |
+        BS1
+    validations:
+      required: false
+
+  - type: textarea
+    id: rent_outcodes_out
+    attributes:
+      label: Rent - never these outcodes
+      description: One per line.
+      placeholder: |
+        BS5
+    validations:
+      required: false
+
+  - type: textarea
+    id: rent_agents
+    attributes:
+      label: Rent - ignore these agents
+      description: One per line. Part of the agent name is enough.
+      placeholder: |
+        Example Lettings
+    validations:
+      required: false
+
+  - type: input
+    id: rent_min_photos
+    attributes:
+      label: Rent - minimum photos
+      description: Leave blank unless you want to skip sparse listings.
+      placeholder: "3"
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: >-
+        The checks below read public records fetched after the search, so they
+        only apply once enrichment is switched on in `config/sources.yaml`.
+        Anything with no data for a given check is kept.
+
+  - type: dropdown
+    id: rent_epc
+    attributes:
+      label: Rent - minimum EPC rating
+      description: Any means do not filter on EPC at all.
+      options:
+        - Any
+        - A
+        - B or better
+        - C or better
+        - D or better
+        - E or better
+        - F or better
+      default: 0
+    validations:
+      required: false
+
+  - type: input
+    id: rent_max_crime
+    attributes:
+      label: Rent - maximum crimes nearby
+      description: Reported incidents in the last month near the property.
+      placeholder: "50"
+    validations:
+      required: false
+
+  - type: input
+    id: rent_min_broadband
+    attributes:
+      label: Rent - minimum broadband
+      description: Megabits per second.
+      placeholder: "100"
+    validations:
+      required: false
 
   - type: textarea
     id: rent_freetext
