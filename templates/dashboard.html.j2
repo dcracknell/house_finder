@@ -250,17 +250,27 @@
 const PROPS = {{ properties_json | safe }};
 const CENTRE = {{ centre_json | safe }};
 
-// The link in the header points at the local `house-finder ui` editor. When
-// this page is served from GitHub Pages there is no local server running, so
-// send people to the setup issue form on GitHub instead.
+// Where this dashboard came from, baked in when the file was generated. The
+// page gets opened from GitHub Pages, from htmlpreview, from a phone and from
+// disk, so sniffing the address bar is not reliable - the generator knows.
+const REPO = {{ repo_slug | tojson }};
+const EDITOR = 'http://127.0.0.1:8765';
+const ON_THIS_MACHINE = location.protocol === 'file:' ||
+  ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
+
+function githubUrl(path) {
+  return REPO ? 'https://github.com/' + REPO + path : '';
+}
+
+// The header link points at the local `house-finder ui` editor, which only
+// answers while that command is running on this machine. Opened from anywhere
+// else it is a dead link, so send people to the setup issue form on GitHub.
 (function preferencesLink() {
   const link = document.getElementById('edit-prefs');
-  if (!link) return;
-  const user = location.hostname.match(/^([^.]+)\.github\.io$/);
-  const repo = location.pathname.split('/').filter(Boolean)[0];
-  if (!user || !repo) return;
-  link.href = 'https://github.com/' + user[1] + '/' + repo +
-    '/issues/new?template=house_search_profile.yml';
+  if (!link || ON_THIS_MACHINE) return;
+  const issue = githubUrl('/issues/new?template=house_search_profile.yml');
+  if (!issue) return;
+  link.href = issue;
   link.title = 'Opens the House search setup form on GitHub.';
 })();
 
@@ -268,7 +278,6 @@ const CENTRE = {{ centre_json | safe }};
 // Locally the editor server does the work; on GitHub Pages there is nothing to
 // talk to, so point at the workflow that can do the same thing.
 (function areaSearch() {
-  const EDITOR = 'http://127.0.0.1:8765';
   const toggle = document.getElementById('try-area');
   const panel = document.getElementById('area-panel');
   if (!toggle || !panel) return;
@@ -280,15 +289,14 @@ const CENTRE = {{ centre_json | safe }};
     if (!panel.hidden && place) place.focus();
   });
 
-  const pages = location.hostname.match(/^([^.]+)\.github\.io$/);
-  if (pages) {
-    const repo = location.pathname.split('/').filter(Boolean)[0];
-    const workflow = 'https://github.com/' + pages[1] + '/' + repo +
-      '/actions/workflows/daily_run.yml';
-    panel.innerHTML = '<p class="area-msg">Nothing local is running here. Open the ' +
-      '<a href="' + workflow + '" target="_blank" rel="noopener">Daily House Search ' +
-      'workflow</a>, choose Run workflow, and fill in the area, the radius and ' +
-      'whether to score it with the AI.</p>';
+  if (!ON_THIS_MACHINE) {
+    const workflow = githubUrl('/actions/workflows/daily_run.yml');
+    panel.innerHTML = '<p class="area-msg">Nothing local is running here. ' + (workflow
+      ? 'Open the <a href="' + workflow + '" target="_blank" rel="noopener">Daily ' +
+        'House Search workflow</a>, choose Run workflow, and fill in the area, the ' +
+        'radius and whether to score it with the AI.'
+      : 'Run <code>house-finder ui</code> on the machine holding the project to ' +
+        'search somewhere new.') + '</p>';
     return;
   }
 
