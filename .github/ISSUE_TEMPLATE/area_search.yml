@@ -1,0 +1,66 @@
+name: One-off area search
+description: Look at one postcode now, using the criteria you have already set.
+title: "Area search: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A single look somewhere that is not in your profile.
+
+        Everything you have already set - budget, bedrooms, must-haves,
+        exclusions, the lot - is applied to this area exactly as it stands.
+        Nothing here changes those criteria, and the twice-daily scheduled run
+        carries on searching your usual areas as before.
+
+        Submit this and the search starts on its own. Give it a few minutes,
+        then reload the map.
+  - type: input
+    id: area
+    attributes:
+      label: Postcode or place
+      description: A postcode, an outcode or a town. For example S10, Hathersage, or Bristol.
+      placeholder: S10
+    validations:
+      required: true
+  - type: dropdown
+    id: radius
+    attributes:
+      label: Within
+      description: How far around that point to look.
+      options:
+        - this area only
+        - 1 mile
+        - 3 miles
+        - 5 miles
+        - 10 miles
+        - 15 miles
+        - 20 miles
+        - 30 miles
+        - 40 miles
+      default: 2
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Looking to
+      options:
+        - buy and rent
+        - buy
+        - rent
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: scoring
+    attributes:
+      label: Scoring
+      description: >-
+        Keyword only costs nothing. As configured uses the AI if you have set an
+        API key, which costs a few pence.
+      options:
+        - as configured
+        - keyword only - no API spend
+      default: 0
+    validations:
+      required: true
