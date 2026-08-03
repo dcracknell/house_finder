@@ -188,9 +188,26 @@ nothing and loses every user edit. There is a regression test
 ## Dashboard
 
 `output/dashboard.py` + `templates/dashboard.html.j2`. Serialises properties to
-one inline JSON blob and renders a Leaflet map with OpenStreetMap tiles. Static,
-self-contained, no server. Filtering happens client-side against the embedded
-data. Properties without coordinates are listed in a panel rather than dropped.
+one inline JSON blob and renders a Leaflet map with OpenStreetMap tiles. Static
+and self-contained. Filtering happens client-side against the embedded data.
+Properties without coordinates are listed in a panel rather than dropped.
+
+Starting a search from the map, in `areaSearch()`. Two invariants:
+
+- **The generated file never holds a credential.** It is committed to the
+  `house-search-data` branch and opened from public URLs, so anything that needs
+  authentication is done by `ui.py` on the user's machine (`gh`, or `GH_TOKEN`
+  from `.env`), never by the page. That is the whole reason `/api/dispatch`
+  exists rather than the page calling the GitHub API itself.
+- **Reachability is probed, not inferred.** `ON_THIS_MACHINE` only says where the
+  page came from, which is not the same question as whether `house-finder ui` is
+  running. A hosted copy pings `/api/run-status` with `mode: 'no-cors'` - the
+  reply is opaque, and "something answered" is all it needs - then hands the
+  three answers to `127.0.0.1:8765/map` as a query string with `run=1`, which
+  presets the panel and starts the search once. The issue form is the fallback
+  when nothing answers. Do not widen `_LOCAL_ORIGIN` in `ui.py` to make the
+  hosted page call the API directly: that origin allowlist is what stops any
+  website from making the machine search.
 
 ## Deliberately not built
 
