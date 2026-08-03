@@ -1,1 +1,120 @@
-{"name": "REPLACE_ME", "modes_enabled": ["buy", "rent"], "buy": {"search_areas": [{"label": "Sheffield", "postcode_or_place": "Sheffield", "radius_miles": 3}], "price": {"min": 150000, "max": 300000}, "bedrooms_min": 2, "bedrooms_max": null, "bathrooms_min": 1, "bathrooms_max": null, "min_size_sqft": null, "max_size_sqft": null, "tenure_types": [], "property_types": ["detached", "semi_detached", "terraced", "bungalow"], "must_haves": ["garden"], "must_have_features": [], "keyword_includes": [], "outcode_includes": [], "max_price_per_sqft": null, "min_image_count": null, "min_epc_rating": "", "max_crime_incidents": null, "min_broadband_mbps": null, "max_price_vs_local_pct": null, "nice_to_haves": ["off-street parking", "garage", "south facing garden", "no chain"], "exclusions": {"no_leasehold_under_years": 90, "no_retirement_homes": true, "no_shared_ownership": true, "no_park_homes": true, "no_new_build": false, "no_auction": true, "keyword_excludes": ["cash buyers only", "japanese knotweed", "above a takeaway"], "outcode_excludes": [], "agent_excludes": [], "no_flood_risk": false}, "max_days_since_listed": 60, "include_sold_stc": false, "preferences_freetext": "REPLACE_ME - describe in plain English what you actually want. e.g. A family home on a quiet street, not on a main road, with room to extend. Happy to renovate a tired kitchen or bathroom, but not looking for a full structural project. Good local schools and a train station within walking distance matter a lot."}, "rent": {"search_areas": [{"label": "Bristol Temple Meads", "postcode_or_place": "Bristol Temple Meads", "radius_miles": 3}], "price_pcm": {"min": 0, "max": 1200}, "bedrooms_min": 1, "bedrooms_max": null, "bathrooms_min": 1, "bathrooms_max": null, "min_size_sqft": null, "max_size_sqft": null, "property_types": ["flat", "terraced", "semi_detached"], "furnished": "any", "min_tenancy_months": 6, "must_haves": [], "must_have_features": [], "keyword_includes": [], "outcode_includes": [], "min_image_count": null, "min_epc_rating": "", "max_crime_incidents": null, "min_broadband_mbps": null, "nice_to_haves": ["garden", "parking", "bills included"], "exclusions": {"no_house_share": true, "no_student_only": true, "keyword_excludes": [], "outcode_excludes": [], "agent_excludes": [], "no_flood_risk": false}, "max_days_since_listed": 30, "include_let_agreed": false, "preferences_freetext": "REPLACE_ME - describe what you want in a rental."}, "rejected_property_cooldown_days": 90}
+{
+  "name": "REPLACE_ME",
+  "modes_enabled": [
+    "rent"
+  ],
+  "buy": {
+    "search_areas": [
+      {
+        "label": "Sheffield",
+        "postcode_or_place": "Sheffield",
+        "radius_miles": 3
+      }
+    ],
+    "price": {
+      "min": 150000,
+      "max": 300000
+    },
+    "bedrooms_min": 2,
+    "bedrooms_max": null,
+    "bathrooms_min": 1,
+    "bathrooms_max": null,
+    "min_size_sqft": null,
+    "max_size_sqft": null,
+    "tenure_types": [],
+    "property_types": [
+      "detached",
+      "semi_detached",
+      "terraced",
+      "bungalow"
+    ],
+    "must_haves": [
+      "garden"
+    ],
+    "must_have_features": [],
+    "keyword_includes": [],
+    "outcode_includes": [],
+    "max_price_per_sqft": null,
+    "min_image_count": null,
+    "min_epc_rating": "",
+    "max_crime_incidents": null,
+    "min_broadband_mbps": null,
+    "max_price_vs_local_pct": null,
+    "nice_to_haves": [
+      "off-street parking",
+      "garage",
+      "south facing garden",
+      "no chain"
+    ],
+    "exclusions": {
+      "no_leasehold_under_years": 90,
+      "no_retirement_homes": true,
+      "no_shared_ownership": true,
+      "no_park_homes": true,
+      "no_new_build": false,
+      "no_auction": true,
+      "keyword_excludes": [
+        "cash buyers only",
+        "japanese knotweed",
+        "above a takeaway"
+      ],
+      "outcode_excludes": [],
+      "agent_excludes": [],
+      "no_flood_risk": false
+    },
+    "max_days_since_listed": 60,
+    "include_sold_stc": false,
+    "preferences_freetext": "REPLACE_ME - describe in plain English what you actually want. e.g. A family home on a quiet street, not on a main road, with room to extend. Happy to renovate a tired kitchen or bathroom, but not looking for a full structural project. Good local schools and a train station within walking distance matter a lot."
+  },
+  "rent": {
+    "search_areas": [
+      {
+        "label": "Bristol Temple Meads",
+        "postcode_or_place": "Bristol Temple Meads",
+        "radius_miles": 1
+      }
+    ],
+    "price_pcm": {
+      "min": 0,
+      "max": 0
+    },
+    "bedrooms_min": 1,
+    "bedrooms_max": null,
+    "bathrooms_min": 1,
+    "bathrooms_max": null,
+    "min_size_sqft": null,
+    "max_size_sqft": null,
+    "property_types": [
+      "flat",
+      "terraced",
+      "semi_detached"
+    ],
+    "furnished": "furnished",
+    "min_tenancy_months": 6,
+    "must_haves": [],
+    "must_have_features": [],
+    "keyword_includes": [],
+    "outcode_includes": [],
+    "min_image_count": null,
+    "min_epc_rating": "",
+    "max_crime_incidents": null,
+    "min_broadband_mbps": null,
+    "nice_to_haves": [
+      "garden",
+      "parking",
+      "bills included"
+    ],
+    "exclusions": {
+      "no_house_share": true,
+      "no_student_only": true,
+      "keyword_excludes": [],
+      "outcode_excludes": [],
+      "agent_excludes": [],
+      "no_flood_risk": false
+    },
+    "max_days_since_listed": 30,
+    "include_let_agreed": false,
+    "preferences_freetext": "A furnished rental within about 1 mile of Bristol Temple Meads station, so I can walk to the trains. Furnished is essential - I don't want to buy furniture. Long-term let preferred."
+  },
+  "rejected_property_cooldown_days": 90
+}
