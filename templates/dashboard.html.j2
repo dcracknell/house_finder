@@ -49,12 +49,9 @@
     border: 1px solid var(--accent); background: var(--accent); color: #fff;
   }
   .area-fields button[disabled] { opacity: .5; cursor: default; }
+  .area-fields button.secondary { background: none; color: var(--accent); }
   .area-msg { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
   .area-msg a { color: var(--accent); }
-  .area-msg .linkish {
-    font: inherit; padding: 0; border: 0; background: none;
-    color: var(--accent); text-decoration: underline; cursor: pointer;
-  }
   .layout { flex: 1; display: flex; min-height: 0; }
   #map { flex: 1; min-height: 320px; }
   aside {
@@ -174,6 +171,7 @@
       </select>
     </div>
     <button id="area-run" type="button">Search this area</button>
+    <button id="area-github" class="secondary" type="button" hidden>Search on GitHub</button>
   </div>
   <p id="area-msg" class="area-msg">A one-off look. Your saved criteria are not changed.</p>
 </div>
@@ -266,25 +264,53 @@ function githubUrl(path) {
   return REPO ? 'https://github.com/' + REPO + path : '';
 }
 
+// Is `house-finder ui` listening on this machine? Asked once, and only ever
+// used to decide whether a search can skip GitHub. A hosted copy of this map
+// cannot read the answer - no-cors makes the reply opaque - but "something
+// answered" is all it needs, and a failure just means "not running".
+function editorIsUp() {
+  if (!window.fetch || !window.AbortController) return Promise.resolve(false);
+  const stop = new AbortController();
+  const timer = setTimeout(function () { stop.abort(); }, 1500);
+  return fetch(EDITOR + '/api/run-status', {
+    mode: 'no-cors', cache: 'no-store', signal: stop.signal
+  }).then(function () { return true; }, function () { return false; })
+    .then(function (up) { clearTimeout(timer); return up; });
+}
+
 // The header link points at the local `house-finder ui` editor, which only
-// answers while that command is running on this machine. Opened from anywhere
-// else it is a dead link, so send people to the setup issue form on GitHub.
+// answers while that command is running. Opened from anywhere else it is a
+// dead link, so send people to the setup issue form on GitHub - unless the
+// editor turns out to be running after all, in which case use the real thing.
 (function preferencesLink() {
   const link = document.getElementById('edit-prefs');
   if (!link || ON_THIS_MACHINE) return;
   const issue = githubUrl('/issues/new?template=house_search_profile.yml');
-  if (!issue) return;
-  link.href = issue;
-  link.title = 'Opens the House search setup form on GitHub.';
+  if (issue) {
+    link.href = issue;
+    link.title = 'Opens the House search setup form on GitHub.';
+  }
+  editorIsUp().then(function (up) {
+    if (!up) return;
+    link.href = EDITOR + '/';
+    link.title = 'Opens the preferences editor running on this machine.';
+  });
 })();
 
 // "Search another area" - a one-off look somewhere that is not in your profile.
-// On this machine the editor server does the work. Anywhere else it hands the
-// same three answers to GitHub, which runs it for you.
+// One press is meant to be the whole job, so the search goes wherever it can
+// start without asking anything more of you:
+//   on this machine, when `house-finder ui` is running - instant and free;
+//   in GitHub Actions, dispatched by that editor with your own gh credentials;
+//   from a filled-in issue form, the last resort when nothing local answers.
+// Your saved criteria and the scheduled runs are left alone either way.
 (function areaSearch() {
   const toggle = document.getElementById('try-area');
   const panel = document.getElementById('area-panel');
-  if (!toggle || !panel) return;
+  const runButton = document.getElementById('area-run');
+  const ghButton = document.getElementById('area-github');
+  const message = document.getElementById('area-msg');
+  if (!toggle || !panel || !runButton || !message) return;
 
   toggle.addEventListener('click', function (event) {
     event.preventDefault();
@@ -292,83 +318,6 @@ function githubUrl(path) {
     const place = document.getElementById('area-place');
     if (!panel.hidden && place) place.focus();
   });
-
-  // Nothing local to talk to. A static page cannot start a GitHub workflow on
-  // its own, so fill in the one-off area search form and let you press Create.
-  // That runs your existing criteria over the place you typed, once, and leaves
-  // your saved criteria and the scheduled runs alone.
-  if (!ON_THIS_MACHINE) {
-    const button = document.getElementById('area-run');
-    const note = document.getElementById('area-msg');
-    const form = githubUrl('/issues/new');
-    if (!form) {
-      note.textContent = 'Start house-finder ui on the machine holding the ' +
-        'project to search somewhere new.';
-      button.disabled = true;
-      return;
-    }
-
-    button.textContent = 'Search this area on GitHub';
-    note.textContent = 'Nothing is running on this machine, so GitHub does the ' +
-      'work. You get a filled-in form - press Create and the search starts. ' +
-      'Your saved criteria are not changed.';
-
-    button.addEventListener('click', function () {
-      const pick = chosen();
-      if (!pick.area) { note.textContent = 'Type a postcode or place first.'; return; }
-      const query = new URLSearchParams({
-        template: 'area_search.yml',
-        title: 'Area search: ' + pick.area,
-        area: pick.area,
-        radius: pick.radius,
-        mode: pick.mode || 'both',
-        scoring: pick.use_ai ? 'ai' : 'keyword'
-      });
-      window.open(form + '?' + query, '_blank', 'noopener');
-      note.textContent = 'Opened the form on GitHub for ' + pick.area +
-        '. Press Create there and the search starts.';
-    });
-
-    // Two routes that file nothing at all: the Actions tab runs the same
-    // search from a form, and the command runs it on your own machine.
-    const extras = document.createElement('p');
-    extras.className = 'area-msg';
-    const viaActions = document.createElement('a');
-    viaActions.href = githubUrl('/actions/workflows/daily_run.yml');
-    viaActions.target = '_blank';
-    viaActions.rel = 'noopener';
-    viaActions.textContent = 'run it from the Actions tab';
-    viaActions.title = 'Press "Run workflow" there and type the place into the ' +
-      'one-off box. No issue is created.';
-    const copy = document.createElement('button');
-    copy.type = 'button';
-    copy.className = 'linkish';
-    copy.textContent = 'copy the command';
-    copy.addEventListener('click', function () {
-      const pick = chosen();
-      if (!pick.area) { note.textContent = 'Type a postcode or place first.'; return; }
-      let text = 'house-finder run --area "' + pick.area + '"';
-      if (pick.radius) text += ' --radius ' + pick.radius;
-      if (pick.mode) text += ' --mode ' + pick.mode;
-      if (!pick.use_ai) text += ' --no-rank';
-      navigator.clipboard.writeText(text).then(function () {
-        note.textContent = 'Copied. Paste it into a terminal in the project folder.';
-      }, function () {
-        note.textContent = text;
-      });
-    });
-    extras.appendChild(document.createTextNode('Would rather not file one? You can '));
-    extras.appendChild(viaActions);
-    extras.appendChild(document.createTextNode(', or '));
-    extras.appendChild(copy);
-    extras.appendChild(document.createTextNode(' and run it yourself.'));
-    panel.appendChild(extras);
-    return;
-  }
-
-  const runButton = document.getElementById('area-run');
-  const message = document.getElementById('area-msg');
-  let poller = null;
 
   function chosen() {
     return {
@@ -386,45 +335,196 @@ function githubUrl(path) {
     return command;
   }
 
-  function stop(text) {
-    if (poller) { clearInterval(poller); poller = null; }
-    runButton.disabled = false;
-    message.textContent = text;
-  }
+  // ---------------------------------------------------------------------
+  // Served by `house-finder ui`: same origin as its API, so one press starts
+  // the search here, and a second button starts it in Actions instead. This
+  // page never holds a credential - the editor uses the ones you already have.
+  // ---------------------------------------------------------------------
+  function localSearch() {
+    let poller = null;
 
-  async function checkProgress() {
-    try {
-      const res = await fetch(EDITOR + '/api/run-status');
-      const state = (await res.json()).run || {};
-      if (state.running) return;
-      stop(state.ok
-        ? 'Done. Reload this page to see what it found.'
-        : 'That search failed - check the window running house-finder ui.');
-    } catch (err) {
-      stop('Lost contact with the editor. Is house-finder ui still running?');
+    function busy(state) {
+      runButton.disabled = state;
+      if (ghButton) ghButton.disabled = state;
     }
-  }
 
-  runButton.addEventListener('click', async function () {
-    const pick = chosen();
-    if (!pick.area) { message.textContent = 'Type a postcode or place first.'; return; }
+    function stop(text) {
+      if (poller) { clearInterval(poller); poller = null; }
+      busy(false);
+      message.textContent = text;
+    }
 
-    runButton.disabled = true;
-    message.textContent = 'Asking for a search of ' + pick.area + '...';
-    try {
-      const res = await fetch(EDITOR + '/api/run', {
+    async function checkProgress() {
+      try {
+        const res = await fetch(EDITOR + '/api/run-status');
+        const state = (await res.json()).run || {};
+        if (state.running) return;
+        stop(state.ok
+          ? 'Done. Reload this page to see what it found.'
+          : 'That search failed - check the window running house-finder ui.');
+      } catch (err) {
+        stop('Lost contact with the editor. Is house-finder ui still running?');
+      }
+    }
+
+    async function ask(path, pick) {
+      const res = await fetch(EDITOR + path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(pick)
       });
-      const data = await res.json();
-      if (!data.ok) { stop(data.error || 'The editor would not start that.'); return; }
-      message.textContent = 'Searching ' + pick.area + '. This takes a few minutes.';
-      poller = setInterval(checkProgress, 4000);
-    } catch (err) {
-      stop('No editor running. Start house-finder ui, or run: ' + commandFor(pick));
+      return res.json();
     }
-  });
+
+    async function runHere() {
+      const pick = chosen();
+      if (!pick.area) { message.textContent = 'Type a postcode or place first.'; return; }
+
+      busy(true);
+      message.textContent = 'Asking for a search of ' + pick.area + '...';
+      try {
+        const data = await ask('/api/run', pick);
+        if (!data.ok) { stop(data.error || 'The editor would not start that.'); return; }
+        message.textContent = 'Searching ' + pick.area + '. This takes a few minutes.';
+        poller = setInterval(checkProgress, 4000);
+      } catch (err) {
+        stop('No editor running. Start house-finder ui, or run: ' + commandFor(pick));
+      }
+    }
+
+    async function runOnGitHub() {
+      const pick = chosen();
+      if (!pick.area) { message.textContent = 'Type a postcode or place first.'; return; }
+
+      busy(true);
+      message.textContent = 'Starting a GitHub Actions run for ' + pick.area + '...';
+      try {
+        const data = await ask('/api/dispatch', pick);
+        if (!data.ok) { stop(data.error || 'GitHub would not start that.'); return; }
+        busy(false);
+        message.textContent = 'Running on GitHub for ' + pick.area + '. It saves ' +
+          'the results itself when it finishes - nothing to submit. ';
+        if (data.runs_url) {
+          const link = document.createElement('a');
+          link.href = data.runs_url;
+          link.target = '_blank';
+          link.rel = 'noopener';
+          link.textContent = 'Watch it';
+          message.appendChild(link);
+        }
+      } catch (err) {
+        stop('Lost contact with the editor. Is house-finder ui still running?');
+      }
+    }
+
+    runButton.addEventListener('click', runHere);
+    if (ghButton) ghButton.addEventListener('click', runOnGitHub);
+
+    // Only offer the Actions route when the editor can actually start one: it
+    // needs the gh CLI you are signed in to, or GH_TOKEN in .env.
+    fetch(EDITOR + '/api/capabilities').then(function (res) {
+      return res.json();
+    }).then(function (info) {
+      if (ghButton && info && info.ok && info.dispatch) ghButton.hidden = false;
+    }).catch(function () {});
+
+    // Arrived from a hosted copy of this map: it puts the three answers in the
+    // query string and asks for the run, so the press made over there is the
+    // only one needed. The query string goes first, so a reload does not
+    // quietly search again.
+    const params = new URLSearchParams(location.search);
+    const area = (params.get('area') || '').trim();
+    if (!area) return;
+
+    function preset(id, value) {
+      const el = document.getElementById(id);
+      if (!el || !value) return;
+      if (Array.prototype.some.call(el.options, function (o) { return o.value === value; })) {
+        el.value = value;
+      }
+    }
+
+    document.getElementById('area-place').value = area;
+    preset('area-radius', params.get('radius'));
+    preset('area-mode', params.get('mode'));
+    preset('area-ai', params.get('ai'));
+    panel.hidden = false;
+    const wanted = params.get('run') === '1';
+    history.replaceState(null, '', location.pathname);
+    if (wanted) runHere();
+  }
+
+  // ---------------------------------------------------------------------
+  // Anywhere else - GitHub Pages, htmlpreview, a phone, a copy on disk. A
+  // static file cannot start a run by itself, and must never be given a token
+  // to do it with: this file is committed to a branch and served from public
+  // URLs. So it hands the job to the editor when that is up, and falls back to
+  // a filled-in form when it is not.
+  // ---------------------------------------------------------------------
+  function hostedSearch() {
+    const form = githubUrl('/issues/new');
+    const RADIUS_LABEL = {
+      '0': 'this area only', '1': '1 mile', '3': '3 miles', '5': '5 miles',
+      '10': '10 miles', '15': '15 miles', '20': '20 miles'
+    };
+    const MODE_LABEL = { '': 'buy and rent', buy: 'buy', rent: 'rent' };
+    let handoff = false;
+
+    if (form) {
+      runButton.textContent = 'Search this area on GitHub';
+      message.textContent = 'Nothing on this machine is answering, so GitHub does ' +
+        'the work. You get a filled-in form - press Create and the search starts. ' +
+        'Your saved criteria are not changed.';
+    } else {
+      runButton.disabled = true;
+      message.textContent = 'Start house-finder ui on the machine holding the ' +
+        'project to search somewhere new.';
+    }
+
+    // The editor is listening after all, so this press can be the last one:
+    // hand the answers to the map it serves and let it run the search there.
+    editorIsUp().then(function (up) {
+      if (!up) return;
+      handoff = true;
+      runButton.disabled = false;
+      runButton.textContent = 'Search this area';
+      message.textContent = 'house-finder ui is running on this machine, so one ' +
+        'press searches there - no form, no waiting on a workflow. Your saved ' +
+        'criteria are not changed.';
+    });
+
+    runButton.addEventListener('click', function () {
+      const pick = chosen();
+      if (!pick.area) { message.textContent = 'Type a postcode or place first.'; return; }
+
+      if (handoff) {
+        message.textContent = 'Handing ' + pick.area + ' to house-finder ui...';
+        location.href = EDITOR + '/map?' + new URLSearchParams({
+          area: pick.area,
+          radius: pick.radius,
+          mode: pick.mode,
+          ai: pick.use_ai ? '1' : '0',
+          run: '1'
+        });
+        return;
+      }
+
+      if (!form) return;
+      const query = new URLSearchParams({
+        template: 'area_search.yml',
+        title: 'Area search: ' + pick.area,
+        area: pick.area,
+        radius: RADIUS_LABEL[pick.radius] || '3 miles',
+        mode: MODE_LABEL[pick.mode] || 'buy and rent',
+        scoring: pick.use_ai ? 'as configured' : 'keyword only - no API spend'
+      });
+      window.open(form + '?' + query, '_blank', 'noopener');
+      message.textContent = 'Opened the form on GitHub for ' + pick.area +
+        '. Press Create there and the search starts.';
+    });
+  }
+
+  if (ON_THIS_MACHINE) localSearch(); else hostedSearch();
 })();
 
 function initMap() {
