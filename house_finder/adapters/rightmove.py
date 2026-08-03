@@ -142,7 +142,19 @@ class RightmoveAdapter(Adapter):
                 )
                 continue
 
-            found = self._fetch_area(location_id, area, criteria, listing_type)
+            try:
+                found = self._fetch_area(location_id, area, criteria, listing_type)
+            except http.BlockedError as exc:
+                # Being refused is not an area-specific problem: stop asking.
+                logger.error("rightmove: %s", exc)
+                raise
+            except Exception as exc:  # noqa: BLE001 - one bad area must not kill the run
+                logger.error(
+                    "rightmove: giving up on area %s after an error: %s",
+                    area["label"], exc,
+                )
+                continue
+
             logger.info(
                 "rightmove: %s - %d listings for %s",
                 area["label"], len(found), listing_type,
@@ -349,7 +361,7 @@ class RightmoveAdapter(Adapter):
             price = parse_rent_pcm(amount, price_block.get("frequency"))
             qualifier = qualifier or "pcm"
         else:
-            price = int(amount) if amount else None
+            price = self._as_int(amount)
 
         key_features = [
             f.get("description", "").strip()
