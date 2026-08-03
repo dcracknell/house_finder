@@ -68,6 +68,21 @@ class TransientHTTPError(Exception):
     """A request failed in a way that is worth retrying."""
 
 
+class BlockedError(Exception):
+    """The host refused us outright (403/451). Retrying will not help."""
+
+
+def _retry_after_seconds(resp: requests.Response) -> float | None:
+    """How long the server asked us to wait, capped so a run cannot hang."""
+    value = (resp.headers.get("Retry-After") or "").strip()
+    if not value:
+        return None
+    try:
+        return max(0.0, min(float(value), 300.0))
+    except ValueError:
+        return None
+
+
 @retry(
     retry=retry_if_exception_type(TransientHTTPError),
     stop=stop_after_attempt(4),
@@ -82,7 +97,20 @@ def get(url: str, **kwargs) -> requests.Response:
     except (requests.Timeout, requests.ConnectionError) as exc:
         raise TransientHTTPError(str(exc)) from exc
 
+    if resp.status_code in (403, 451):
+        raise BlockedError(
+            f"HTTP {resp.status_code} from {url} - this host is refusing "
+            "automated requests. Retrying will not help: slow the source "
+            "down, or turn it off in config/sources.yaml."
+        )
     if resp.status_code == 429 or resp.status_code >= 500:
+        wait = _retry_after_seconds(resp)
+        if wait:
+            logger.warning(
+                "http: %s asked us to wait %.0fs before retrying (HTTP %s)",
+                url, wait, resp.status_code,
+            )
+            time.sleep(wait)
         raise TransientHTTPError(f"HTTP {resp.status_code} from {url}")
     resp.raise_for_status()
     return resp
