@@ -5,18 +5,23 @@ be changed without hand-editing JSON. Binds to localhost only - it writes to
 your config directory and has no authentication.
 
 It can also start a one-off search of an area that is not in your profile,
-which is what the "Search another area" button on the map talks to.
+which is what the "Search another area" button on the map talks to - either
+here, or in GitHub Actions using credentials that never leave this machine.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import os
 import re
+import shutil
 import subprocess
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -145,6 +150,142 @@ def describe_run_command(command: list[str]) -> str:
     return " ".join(["house-finder", *command[3:]])
 
 
+# ---------------------------------------------------------------------------
+# Handing a one-off search to GitHub Actions
+# ---------------------------------------------------------------------------
+
+# dashboard.html is a generated file: it gets committed to the data branch and
+# opened from public URLs, so it must never carry a GitHub token. When a search
+# should run in Actions instead of here, the map asks this server and this
+# server asks GitHub, using the gh CLI you are already signed in to, or GH_TOKEN
+# from .env when gh is not installed. The credential stays on this machine.
+
+_WORKFLOW = "daily_run.yml"
+
+# The workflow declares radius as a choice input, so anything off this list is
+# refused here rather than silently dropped by GitHub.
+_DISPATCH_RADII = {"0", "1", "3", "5", "10", "15", "20", "30", "40"}
+
+
+def build_dispatch_inputs(payload: dict) -> dict:
+    """Turn a request from the map into workflow_dispatch inputs."""
+    place = str(payload.get("area") or "").strip()
+    if not _PLACE.match(place):
+        raise ValueError("Enter a postcode or place name.")
+
+    inputs = {
+        "area": place,
+        # Same default as a local run: curiosity about another area is free
+        # unless you deliberately ask for the scoring pass.
+        "scoring": "as configured" if payload.get("use_ai")
+        else "keyword only - no API spend",
+    }
+
+    radius = payload.get("radius")
+    if radius not in (None, ""):
+        if str(radius) not in _DISPATCH_RADII:
+            allowed = ", ".join(sorted(_DISPATCH_RADII, key=float))
+            raise ValueError(f"The workflow only accepts a radius of {allowed}.")
+        inputs["radius"] = str(radius)
+
+    if payload.get("mode") in ("buy", "rent"):
+        inputs["mode"] = str(payload["mode"])
+    return inputs
+
+
+def _git(*args: str) -> str:
+    """Run a read-only git command in the project, empty string on any failure."""
+    try:
+        finished = subprocess.run(
+            ["git", *args], cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=10
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return finished.stdout.strip() if finished.returncode == 0 else ""
+
+
+def repo_slug() -> str | None:
+    """owner/name for this checkout, taken from git's own remote."""
+    match = re.search(
+        r"github\.com[:/]+([^/]+/[^/]+?)(?:\.git)?$", _git("remote", "get-url", "origin")
+    )
+    return match.group(1) if match else None
+
+
+def _default_branch() -> str:
+    """The branch Actions should run the workflow from."""
+    name = _git("symbolic-ref", "--short", "refs/remotes/origin/HEAD")
+    return name.rsplit("/", 1)[-1] or "main"
+
+
+def _token() -> str | None:
+    return os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+
+
+def dispatch_capability() -> str | None:
+    """How this machine could start an Actions run, or None if it cannot."""
+    if shutil.which("gh"):
+        return "gh"
+    if _token() and repo_slug():
+        return "token"
+    return None
+
+
+def dispatch_run(payload: dict) -> dict:
+    """Start the workflow in GitHub Actions on the user's behalf."""
+    inputs = build_dispatch_inputs(payload)
+    how = dispatch_capability()
+
+    if how == "gh":
+        command = ["gh", "workflow", "run", _WORKFLOW]
+        for key, value in inputs.items():
+            command += ["-f", f"{key}={value}"]
+        finished = subprocess.run(
+            command, cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=60
+        )
+        if finished.returncode != 0:
+            detail = (finished.stderr or finished.stdout or "").strip()
+            raise RuntimeError(detail[-400:] or "gh could not start the workflow.")
+    elif how == "token":
+        slug = repo_slug()
+        request = urllib.request.Request(
+            f"https://api.github.com/repos/{slug}/actions/workflows/{_WORKFLOW}/dispatches",
+            data=json.dumps({"ref": _default_branch(), "inputs": inputs}).encode("utf-8"),
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {_token()}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "Content-Type": "application/json",
+                "User-Agent": "house-finder",
+            },
+        )
+        try:
+            urllib.request.urlopen(request, timeout=30).close()
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(
+                f"GitHub refused the run ({exc.code}). Does the token still have "
+                "actions: write on this repository?"
+            ) from exc
+        except OSError as exc:
+            raise RuntimeError(f"Could not reach GitHub: {exc}") from exc
+    else:
+        raise RuntimeError(
+            "Nothing here can talk to GitHub. Install the gh CLI and run "
+            "gh auth login, or put GH_TOKEN in .env."
+        )
+
+    slug = repo_slug()
+    logger.info("ui: asked Actions to search %s via %s", inputs["area"], how)
+    return {
+        "ok": True,
+        "how": how,
+        "runs_url": (
+            f"https://github.com/{slug}/actions/workflows/{_WORKFLOW}" if slug else None
+        ),
+    }
+
+
 def _run_in_background(command: list[str]) -> None:
     try:
         finished = subprocess.run(
@@ -223,6 +364,23 @@ class _Handler(BaseHTTPRequestHandler):
         threading.Thread(target=_run_in_background, args=(command,), daemon=True).start()
         self._send_json(202, {"ok": True, "command": described})
 
+    def _start_dispatch(self) -> None:
+        """Ask Actions to run a one-off search, so nobody has to open GitHub."""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except (ValueError, TypeError) as exc:
+            self._send_json(400, {"ok": False, "error": f"Invalid JSON: {exc}"})
+            return
+
+        try:
+            self._send_json(202, dispatch_run(payload))
+        except ValueError as exc:
+            self._send_json(400, {"ok": False, "error": str(exc)})
+        except Exception as exc:  # noqa: BLE001 - reported in the browser
+            logger.warning("ui: dispatch failed: %s", exc)
+            self._send_json(502, {"ok": False, "error": str(exc)})
+
     def _send_dashboard(self) -> None:
         """Serve the generated map from this server.
 
@@ -257,6 +415,20 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_dashboard()
             return
 
+        if self.path == "/api/capabilities":
+            # Lets the map offer the Actions button only when pressing it would
+            # actually start something.
+            self._send_json(
+                200,
+                {
+                    "ok": True,
+                    "dispatch": dispatch_capability(),
+                    "workflow": _WORKFLOW,
+                    "repo": repo_slug(),
+                },
+            )
+            return
+
         if self.path == "/api/run-status":
             with _run_lock:
                 self._send_json(200, {"ok": True, "run": dict(_run_state)})
@@ -274,6 +446,10 @@ class _Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802 - required by BaseHTTPRequestHandler
         if self.path == "/api/run":
             self._start_run()
+            return
+
+        if self.path == "/api/dispatch":
+            self._start_dispatch()
             return
 
         if self.path != "/api/profile":
