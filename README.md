@@ -152,31 +152,40 @@ or sync it to your phone.
 - "Change what I am looking for" in the header opens the preferences editor, so
   you can adjust your criteria from the page you are already looking at. On the
   machine running `house-finder ui` that is the local editor; anywhere else -
-  GitHub Pages, htmlpreview, your phone - it opens the setup issue form instead.
+  GitHub Pages, htmlpreview, your phone - it opens the setup issue form instead,
+  unless that editor turns out to be running here after all.
 - "Search another area" is a one-off look somewhere that is not in your profile.
   Type a postcode, pick a radius, buy or rent, and whether to score it with the
   AI, and it searches that place against everything you have already set -
   budget, bedrooms, must-haves, exclusions and all. Your saved criteria are
-  untouched, so the next scheduled run goes back to your usual areas. On the
-  machine running `house-finder ui` it starts there and then. Anywhere else it
-  fills in the "One-off area search" issue form for you; press Create and GitHub
-  runs it, and the map picks up whatever it found.
+  untouched, so the next scheduled run goes back to your usual areas. One press
+  is meant to be the whole job: the page checks whether `house-finder ui` is
+  listening on this machine - wherever the page itself was opened from - and if
+  it is, the search starts there straight away. Only when nothing local answers
+  does it fall back to filling in the "One-off area search" issue form for you,
+  which is still the route that works from a phone with nothing installed.
 
 ### One-off searches without filing an issue
 
-The issue form is the route that works from a phone with nothing installed, but
-it is not the only one. None of these touch your saved criteria or the schedule
-either.
+The issue form is the fallback, not the usual route. None of these touch your
+saved criteria or the schedule either.
 
+- **`house-finder ui`.** Start it and open <http://127.0.0.1:8765/map>. That is
+  your real map, served by the editor, so pressing "Search another area" runs
+  the search on your own machine there and then - nothing filed, no Actions
+  minutes spent. A copy of the map opened from anywhere else hands over to this
+  one when it is running, so the press you already made is the only one needed.
+- **The same map, but run it on GitHub.** On that locally served map a second
+  button appears whenever this machine can reach GitHub, and it starts the
+  *Daily House Search* workflow for you - no form to submit. It uses the gh CLI
+  you are signed in to, or `GH_TOKEN` in `.env` if gh is not installed. The map
+  never holds a credential itself: it is a generated file that gets committed to
+  the data branch and served from public URLs, so the editor does the talking.
 - **The Actions tab.** Actions -> *Daily House Search* -> **Run workflow**, and
   put the place in the "One-off: search this postcode or place" box. Same run,
   same criteria, no issue left behind.
-- **`house-finder ui`.** Start it and open <http://127.0.0.1:8765/map>. That is
-  your real map, served by the editor, so "Search another area" runs on your own
-  machine there and then - nothing filed, no Actions minutes spent.
 - **The command line.** `house-finder run --area "CH7" --radius 3 --no-rank`.
   `--area` only swaps out the places searched; every other filter still applies.
-  The map's *copy the command* link writes this line for whatever you typed.
 
 ---
 
