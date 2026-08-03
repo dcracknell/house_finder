@@ -62,6 +62,41 @@ def _repo_slug() -> str:
     return match.group(1) if match else ""
 
 
+# Characters that must never appear raw inside a <script> block. json.dumps
+# leaves them alone, so a listing description containing "</script>" - text an
+# estate agent writes, not us - would otherwise break out of the tag and be
+# parsed as markup by the browser.
+_SCRIPT_ESCAPES = {
+    "<": "\\u003c",
+    ">": "\\u003e",
+    "&": "\\u0026",
+    "\\u2028": "\\u2028",
+    "\\u2029": "\\u2029",
+}
+
+
+def json_for_script(value) -> str:
+    """Serialise `value` as JSON that is safe to embed in an HTML <script>."""
+    text = json.dumps(value, separators=(",", ":"))
+    for char, replacement in _SCRIPT_ESCAPES.items():
+        text = text.replace(char, replacement)
+    return text
+
+
+def _safe_url(url: str | None) -> str:
+    """Drop any listing URL that is not a plain http(s) link.
+
+    Listing URLs are third-party data: a "javascript:" URL picked up from a
+    scraped page would otherwise become a clickable link in the dashboard.
+    """
+    text = (url or "").strip()
+    if text.lower().startswith(("http://", "https://")):
+        return text
+    if text:
+        logger.debug("dashboard: dropped non-http listing url %r", text[:80])
+    return ""
+
+
 def _row_to_property(row: sqlite3.Row) -> dict:
     """Compact representation - this is embedded in the page, so keep it small."""
     try:
@@ -87,7 +122,7 @@ def _row_to_property(row: sqlite3.Row) -> dict:
         "matched": matched,
         "lat": row["lat"],
         "lon": row["lon"],
-        "url": row["url"],
+        "url": _safe_url(row["url"]),
         "agent": row["agent_name"] or "",
         "status": row["status"] or "new",
         "listed": row["first_listed_date"] or "",
@@ -144,8 +179,8 @@ def generate(
     template = env.get_template("dashboard.html.j2")
 
     html = template.render(
-        properties_json=json.dumps(properties, separators=(",", ":")),
-        centre_json=json.dumps(centre),
+        properties_json=json_for_script(properties),
+        centre_json=json_for_script(centre),
         stats=stats,
         unmapped=unmapped,
         generated_at=date.today().isoformat(),
