@@ -6,7 +6,7 @@ import json
 import logging
 import smtplib
 import sqlite3
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from email.message import EmailMessage
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -33,7 +33,8 @@ def _new_since(
     rows = conn.execute(
         """
         SELECT * FROM properties
-        WHERE first_seen >= ?
+        WHERE notified_at IS NULL
+          AND first_seen >= ?
           AND status = 'new'
           AND (fit_score IS NULL OR fit_score >= ?)
         ORDER BY fit_score DESC NULLS LAST, price ASC
@@ -50,6 +51,7 @@ def _new_since(
             matched = []
         out.append(
             {
+                "id": row["property_id"],
                 "title": row["title"],
                 "address": row["display_address"],
                 "price": format_price(row["price"], row["listing_type"]),
@@ -71,7 +73,7 @@ def _new_since(
 
 
 def send_digest(
-    conn: sqlite3.Connection, settings: dict, *, days: int = 1, force: bool = False
+    conn: sqlite3.Connection, settings: dict, *, days: int = 14, force: bool = False
 ) -> bool:
     """Send the digest if there is anything to report. Returns True if sent."""
     mode = str(settings.get("mode", "passive")).lower()
@@ -129,5 +131,26 @@ def send_digest(
         logger.error("email: could not send digest: %s", exc)
         return False
 
+    _mark_notified(conn, [p["id"] for p in properties])
     logger.info("email: sent digest with %d properties", len(properties))
     return True
+
+
+def _mark_notified(conn: sqlite3.Connection, property_ids: list[str]) -> None:
+    """Record that these properties have been emailed.
+
+    Without this the digest is purely "first seen recently", so the morning
+    and afternoon runs mail the same listing twice, and anything first seen
+    while SMTP was misconfigured is never mentioned at all.
+    """
+    if not property_ids:
+        return
+    stamp = datetime.now(UTC).isoformat()
+    try:
+        conn.executemany(
+            "UPDATE properties SET notified_at = ? WHERE property_id = ?",
+            [(stamp, property_id) for property_id in property_ids],
+        )
+        conn.commit()
+    except sqlite3.Error as exc:
+        logger.error("email: could not record what was emailed: %s", exc)
