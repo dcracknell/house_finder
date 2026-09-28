@@ -1,24 +1,23 @@
 Note: config/profile.json still has placeholder values. Run `house-finder ui` to set your real search criteria.
 
 === RENT ===
-14:59:59 INFO    house_finder.search.areas: areas: resolved 'Bristol Temple Meads' to REGION^24111 (Temple Meads, Bristol)
-15:00:06 INFO    house_finder.adapters.rightmove: rightmove: Bristol Temple Meads - 113 listings for rent
-15:00:06 INFO    house_finder.pipeline.normalise: normalise: recovered 101 full postcodes from coordinates (of 101 missing)
-  fetched 108 listings
-15:00:06 INFO    house_finder.pipeline.filter: filter: dropped 25/108 (listed_too_long_ago: 24, house_share: 1)
-  83 passed your filters
-15:00:06 INFO    house_finder.enrichment: enrichment: 3 sources active (crime, flood, land_registry) for 60 properties
-15:02:09 INFO    house_finder.enrichment: enrichment: added data to 60 properties
-15:02:09 WARNING house_finder.pipeline.rank: rank: ANTHROPIC_API_KEY not set - falling back to keyword-only scores for 83 listings
-  scored 83 new or changed listings
-15:02:09 INFO    house_finder.pipeline.dedup: dedup: 6 new, 77 updated
-15:02:09 INFO    house_finder.pipeline.dedup: dedup: marked 4 listings withdrawn (not seen in 21 days)
-15:02:09 INFO    house_finder.output.workbook_export: export: For Sale sheet - 0 properties
-15:02:10 INFO    house_finder.output.workbook_export: export: To Rent sheet - 176 properties
-15:02:10 INFO    house_finder.output.workbook_export: export: wrote 176 properties to /home/runner/work/house_finder/house_finder/data/houses.xlsx
-15:02:10 INFO    house_finder.output.dashboard: dashboard: wrote /home/runner/work/house_finder/house_finder/data/dashboard.html (176 properties, 176 on the map)
-15:02:10 INFO    house_finder.output.email_digest: email: mode is 'passive', not sending (set mode: active to enable)
+21:35:13 INFO    house_finder.search.areas: areas: resolved 'Bristol Temple Meads' to REGION^24111 (Temple Meads, Bristol)
+21:35:20 INFO    house_finder.adapters.rightmove: rightmove: Bristol Temple Meads - 111 listings for rent
+21:35:20 INFO    house_finder.pipeline.normalise: normalise: recovered 99 full postcodes from coordinates (of 99 missing)
+  fetched 106 listings
+21:35:21 INFO    house_finder.pipeline.filter: filter: dropped 24/106 (listed_too_long_ago: 23, house_share: 1)
+  82 passed your filters
+21:35:21 INFO    house_finder.enrichment: enrichment: 3 sources active (crime, flood, land_registry) for 60 properties
+21:35:36 INFO    house_finder.enrichment: enrichment: added data to 60 properties
+21:35:36 WARNING house_finder.pipeline.rank: rank: ANTHROPIC_API_KEY not set - falling back to keyword-only scores for 82 listings
+  scored 82 new or changed listings
+21:35:36 INFO    house_finder.pipeline.dedup: dedup: 5 new, 77 updated
+21:35:36 INFO    house_finder.output.workbook_export: export: For Sale sheet - 0 properties
+21:35:36 INFO    house_finder.output.workbook_export: export: To Rent sheet - 181 properties
+21:35:36 INFO    house_finder.output.workbook_export: export: wrote 181 properties to /home/runner/work/house_finder/house_finder/data/houses.xlsx
+21:35:36 INFO    house_finder.output.dashboard: dashboard: wrote /home/runner/work/house_finder/house_finder/data/dashboard.html (181 properties, 181 on the map)
+21:35:36 INFO    house_finder.output.email_digest: email: mode is 'passive', not sending (set mode: active to enable)
 
-Done. 6 new, 83 tracked.
+Done. 5 new, 82 tracked.
   workbook:  /home/runner/work/house_finder/house_finder/data/houses.xlsx
   map:       /home/runner/work/house_finder/house_finder/data/dashboard.html
